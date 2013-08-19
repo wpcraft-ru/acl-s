@@ -612,9 +612,11 @@ class acl_groups {
 
       // проверяем nonce из нашей страницы, потому что save_post может быть вызван с другого места.  
 
-      if ( !wp_verify_nonce( $_POST['acl_noncename'], plugin_basename(__FILE__) )) {  
-        return $post_id;  
-      }  
+    if(isset($_POST['acl_noncename'])){
+        if ( !wp_verify_nonce( $_POST['acl_noncename'], plugin_basename(__FILE__) )) {  
+            return $post_id;
+          }  
+    }  
 
       // проверяем разрешено ли пользователю указывать эти данные   
         if ( !current_user_can( 'manage_options' ) )  
@@ -622,9 +624,10 @@ class acl_groups {
 
       delete_post_meta($post_id, 'users');
     
-      //$data = ;  
-      foreach ( ( array ) explode( ',', trim( $_POST['users'] ) ) as $user_id ) {
-          add_post_meta($post_id, 'users', $user_id, false);
+      if(isset($_POST['users'])){
+        foreach ( ( array ) explode( ',', trim( $_POST['users'] ) ) as $user_id ) {
+            add_post_meta($post_id, 'users', $user_id, false);
+        }
       }
        
     }  
@@ -640,6 +643,8 @@ class ACL {
     function __construct() {
         add_action('admin_enqueue_scripts', array($this, 'load_ss_acl'));
         add_filter('posts_where', array($this, 'acl_filter_where'));
+        
+        
     }
     
     function acl_filter_where($where) {
