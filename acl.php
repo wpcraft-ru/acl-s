@@ -19,6 +19,8 @@ class acl_posts {
         add_action('post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
         add_action( 'wp_ajax_save_acl_post', array($this, 'save_acl_post_callback') );
         add_action( 'wp_ajax_get_acl_users_for_post', array($this, 'get_acl_users_for_post_callback') );
+        add_action( 'wp_ajax_get_acl_groups_for_post', array($this, 'get_acl_groups_for_post_callback') );
+        
         
         
     }
@@ -31,7 +33,7 @@ class acl_posts {
     }
 
     function auto_add_access_for_author(){
-        //Если пользователю является автором записи, то автоматом дать полный доступ.
+        
     }
 
     function get_acl_users_for_post_callback() {
@@ -46,6 +48,25 @@ class acl_posts {
             $elements[] = array(
                 'id' => $user_id,
                 'title' => $user->display_name
+                );			
+        }
+
+        echo json_encode($elements);
+        exit; 
+    }
+
+    function get_acl_groups_for_post_callback() {
+        $ids = array();
+        $elements = array();
+
+        if (isset($_REQUEST['post_id']))
+            $ids = get_post_meta( $_REQUEST['post_id'], 'acl_groups_read');
+
+        foreach ($ids as $id){
+            $group = get_post($id);
+            $elements[] = array(
+                'id' => $id,
+                'title' => $group->post_title
                 );			
         }
 
@@ -72,11 +93,26 @@ class acl_posts {
         }
         
         
-        $acl_users_edit = $_REQUEST['acl_users_edit'];
-        $acl_users_full = $_REQUEST['acl_users_full'];
-        $acl_groups_read = $_REQUEST['acl_groups_read'];
-        $acl_groups_edit = $_REQUEST['acl_groups_edit'];
-        $acl_groups_full = $_REQUEST['acl_groups_full'];
+        //$acl_users_edit = $_REQUEST['acl_users_edit'];
+        //$acl_users_full = $_REQUEST['acl_users_full'];
+        $acl_groups_read = explode( ',', trim($_REQUEST['acl_groups_read']));
+        
+        $old_acl_groups_read = get_post_meta($post_id, 'acl_groups_read');
+        
+        //добавляем новые ИД если их нет в старом списке
+        foreach ( $acl_groups_read as $group_id ) {
+            if (!(in_array($group_id, $old_acl_groups_read)))
+                add_post_meta($post_id, 'acl_groups_read', $group_id);
+        }
+        
+        //удаляем старые ИД если их нет в новом списке
+        foreach ( $old_acl_groups_read as $old_group_id ) {
+            if (!(in_array($old_group_id, $acl_groups_read)))
+                delete_post_meta($post_id, 'acl_groups_read', $old_group_id);
+        }       
+        
+        //$acl_groups_edit = $_REQUEST['acl_groups_edit'];
+        //$acl_groups_full = $_REQUEST['acl_groups_full'];
     }
     
     function add_field_to_submitbox() {
@@ -98,11 +134,11 @@ class acl_posts {
                         $.ajax({
                             data: ({
                                 acl_users_read: $("#acl_users_read").val(),
-                                acl_users_edit: $("#acl_users_edit").val(),
-                                acl_users_full: $("#acl_users_full").val(),
+                                //acl_users_edit: $("#acl_users_edit").val(),
+                                //acl_users_full: $("#acl_users_full").val(),
                                 acl_groups_read: $("#acl_groups_read").val(),
-                                acl_groups_edit: $("#acl_groups_edit").val(),
-                                acl_groups_full: $("#acl_groups_full").val(),
+                                //acl_groups_edit: $("#acl_groups_edit").val(),
+                                //acl_groups_full: $("#acl_groups_full").val(),
                                 post_id: <?php echo $post->ID ?>,
                                 action: 'save_acl_post'
                             }),
@@ -120,12 +156,10 @@ class acl_posts {
                 <legend><h1>Доступ пользователей</h1></legend>
                 <br />
                 <label for='acl_users_read'>На чтение</label><br /><input id='acl_users_read' class='select2field'></input><br />
-                <label for='acl_users_edit'>На изменение</label><br /><input id='acl_users_edit' class='select2field'></input><br />
-                <label for='acl_users_full'>Полный доступ</label><br /><input id='acl_users_full' class='select2field'></input><br />
             </fieldset>
             <script>
                 jQuery(document).ready(function($) {
-                    update_current_data();
+                    update_users_data();
                     $("#acl_users_read, #acl_users_edit, #acl_users_full").select2({
                         placeholder: "",
                         formatInputTooShort: function (input, min) { return "Пожалуйста, введите " + (min - input.length) + " или более символов"; },
@@ -165,7 +199,7 @@ class acl_posts {
                         escapeMarkup: function (m) { return m; } // we do not want to escape markup since we are displaying html in results
                     });
                 });
-                function update_current_data() {
+                function update_users_data() {
                         jQuery.ajax({
                             data: ({
                                 action: 'get_acl_users_for_post',
@@ -188,13 +222,10 @@ class acl_posts {
                 <br />
                 <label for='acl_groups_read'>На чтение</label><br />
                 <input id='acl_groups_read' class='select2field'></input><br />
-                <label for='acl_groups_edit'>На изменение</label><br />
-                <input id='acl_groups_edit' class='select2field'></input><br />
-                <label for='acl_groups_full'>Полный доступ</label><br />
-                <input id='acl_groups_full' class='select2field'></input><br />
             </fieldset>
             <script>
                 jQuery(document).ready(function($) {
+                    update_groups_data();
                     $("#acl_groups_read, #acl_groups_edit, #acl_groups_full").select2({
                         placeholder: "",
                         formatInputTooShort: function (input, min) { return "Пожалуйста, введите " + (min - input.length) + " или более символов"; },
@@ -247,6 +278,21 @@ class acl_posts {
                             }
                         });
                     });
+                    
+                    function update_groups_data() {
+                        jQuery.ajax({
+                            data: ({
+                                action: 'get_acl_groups_for_post',
+                                dataType: 'json',
+                                post_id: <?php echo $post->ID ?>,
+                            }),
+                            url: "<?php echo admin_url('admin-ajax.php') ?>",
+                            success: function(data) {
+                                acl = jQuery.parseJSON(data);
+                                jQuery('#acl_groups_read').select2('data',  acl);
+                            }
+                        });
+                }
             
             </script>
         </div>
@@ -279,6 +325,54 @@ class acl_posts {
     }
 
 }
+
+/*
+ * Замещения
+ */
+$TheACL_substitutes = new acl_substitutes();
+class acl_substitutes {
+    
+    function __construct() {
+        add_action( 'show_user_profile', array($this, 'acl_user_profile_fields') );
+        add_action( 'edit_user_profile', array($this, 'acl_user_profile_fields' ));
+
+        add_action( 'personal_options_update', array($this, 'save_acl_user_profile_fields' ));
+        add_action( 'edit_user_profile_update', array($this, 'save_acl_user_profile_fields' ));
+    }
+
+
+
+    
+    function acl_user_profile_fields($user){
+        if ( !current_user_can( 'edit_user', $user_id ) ) { return false; }
+        $acl_substitutes = implode(",", get_user_meta($user->ID, 'acl_substitutes'));
+        
+        ?>
+    <div>
+        <h3>Заместители</h3>
+        </p>Эти пользователи получают доступ к записям текующего пользователя в рамках механизма ACL. Перечисление ИД пользователей через запятую.</p>
+        <input id="acl_substitutes" name ="acl_substitutes" value="<?php echo $acl_substitutes ?>" size="100%" />
+    </div>
+    <?php
+    }
+    
+    function save_acl_user_profile_fields( $user_id ) {
+
+        if ( !current_user_can( 'edit_user', $user_id ) ) { return false; }
+
+        $acl_substitutes = explode( ',', trim($_REQUEST['acl_substitutes']));
+        
+        $meta_key = 'acl_substitutes';
+        delete_user_meta($user_id, $meta_key);
+        
+        //добавляем новые ИД если их нет в старом списке
+        foreach ( $acl_substitutes as $sub_id ) {
+                add_user_meta($user_id, $meta_key, $sub_id);
+        }
+    }
+    
+}
+
 
 $TheACL_groups = new acl_groups();
 class acl_groups {
@@ -556,14 +650,31 @@ class ACL {
         
         $pt = "'cases'";
 
+        $acl_users[] = get_current_user_id();
+        $sub = get_user_meta(get_current_user_id(), 'acl_substitutes');
+        $acl_users = array_merge( $sub, $acl_users);
+        $acl_users = array_unique($acl_users);
+        
+        $acl_groups_id = get_posts("fields=ids&post_type=user_group&meta_key=users&meta_value=".get_current_user_id());
+        //error_log(print_r( $acl_groups_id ));
+        
         $args = array(  
             'fields' => 'ids',
-            'meta_key'        => 'acl_users_read',  
-            'meta_value'      => get_current_user_id(),
-            'post_type'       => 'cases'
-        );  
+            'post_type' => 'cases',
+            'meta_query' => array(  
+                'relation' => 'OR',  
+                array(  
+                    'key' => 'acl_users_read',  
+                    'value' => $acl_users
+                ),
+                array(  
+                    'key' => 'acl_groups_read',
+                    'value' => $acl_groups_id
+                )
+            )
+        );
 
-        $posts = get_posts($args);  
+        $posts = get_posts($args);
         $posts = implode(",", $posts);
         
         $where .= " AND IF($wpdb->posts.post_type in (". $pt ."),$wpdb->posts.ID IN ( ".$posts." ),1)";
