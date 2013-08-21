@@ -642,7 +642,7 @@ class ACL {
 
     function __construct() {
         add_action('admin_enqueue_scripts', array($this, 'load_ss_acl'));
-        add_filter('posts_where', array($this, 'acl_filter_where'));
+        add_filter('posts_where', array($this, 'acl_filter_where'), 10, 1);
         
         
     }
@@ -652,39 +652,39 @@ class ACL {
         
         
         if (current_user_can('full_access_to_posts')) return $where;
-        
-        $pt = "'cases'";
+   
+		$acl_users[] = get_current_user_id();
+		$sub = get_user_meta(get_current_user_id(), 'acl_substitutes');
+		$acl_users = array_merge( $sub, $acl_users);
+		$acl_users = array_unique($acl_users);
 
-        $acl_users[] = get_current_user_id();
-        $sub = get_user_meta(get_current_user_id(), 'acl_substitutes');
-        $acl_users = array_merge( $sub, $acl_users);
-        $acl_users = array_unique($acl_users);
-        
-        $acl_groups_id = get_posts("fields=ids&post_type=user_group&meta_key=users&meta_value=".get_current_user_id());
-        //error_log(print_r( $acl_groups_id ));
-        
-        $args = array(  
-            'fields' => 'ids',
-            'post_type' => 'cases',
-            'meta_query' => array(  
-                'relation' => 'OR',  
-                array(  
-                    'key' => 'acl_users_read',  
-                    'value' => $acl_users
-                ),
-                array(  
-                    'key' => 'acl_groups_read',
-                    'value' => $acl_groups_id
-                )
-            )
-        );
+		$acl_groups_id = get_posts("fields=ids&post_type=user_group&meta_key=users&meta_value=".get_current_user_id());
 
-        $posts = get_posts($args);
-        $posts = implode(",", $posts);
+		$args = array(  
+			'fields' => 'ids',
+			'post_type' => 'any',
+			'meta_query' => array(  
+				'relation' => 'OR',  
+				array(  
+					'key' => 'acl_users_read',  
+					'value' => $acl_users
+				),
+				array(  
+					'key' => 'acl_groups_read',
+					'value' => $acl_groups_id
+				)
+			)
+		);
+
+		$ids = get_posts($args);
+		$ids = implode(",", $ids);
+
+
+		$where .= " AND (if(".$wpdb->posts.".post_type in ('report'),if(".$wpdb->posts.".ID IN (" . $ids . "),1,0),1)=1)";
+
+		return $where;
         
-        $where .= " AND IF($wpdb->posts.post_type in (". $pt ."),$wpdb->posts.ID IN ( ".$posts." ),1)";
-        
-        return $where;
+
     }
     
     function load_ss_acl(){
