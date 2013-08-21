@@ -679,8 +679,9 @@ class ACL {
 		$ids = get_posts($args);
 		$ids = implode(",", $ids);
 
+		$pts = "'report', 'cases'";
 
-		$where .= " AND (if(".$wpdb->posts.".post_type in ('report'),if(".$wpdb->posts.".ID IN (" . $ids . "),1,0),1)=1)";
+		$where .= " AND (if(".$wpdb->posts.".post_type in (".$pts."),if(".$wpdb->posts.".ID IN (" . $ids . "),1,0),1)=1)";
 
 		return $where;
         
