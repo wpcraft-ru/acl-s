@@ -651,7 +651,7 @@ class ACL {
         global $wpdb;
         
         
-        if (current_user_can('full_access_to_posts')) return $where;
+        if (current_user_can('full_access_to_posts') or current_user_can('editor')) return $where;
    
 		$acl_users[] = get_current_user_id();
 		$sub = get_user_meta(get_current_user_id(), 'acl_substitutes');
