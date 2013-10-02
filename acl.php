@@ -20,10 +20,19 @@ class acl_posts {
         add_action( 'wp_ajax_save_acl_post', array($this, 'save_acl_post_callback') );
         add_action( 'wp_ajax_get_acl_users_for_post', array($this, 'get_acl_users_for_post_callback') );
         add_action( 'wp_ajax_get_acl_groups_for_post', array($this, 'get_acl_groups_for_post_callback') );
-        
+        add_action( 'delete_post', array($this, 'delete_acl_metas'), 10, 1 );
         
         
     }
+	
+	function delete_acl_metas($acl_group_id){
+		//ПРИ ОГРОМНОМ КОЛ-ВЕ ПОСТОВ МОЖЕТ ВЫЗВАТЬ ЗАМЕДЛЕНИЕ РАБОТЫ! РЕШЕНИЕ ПЕРЕДЕЛАТЬ ЧЕРЕЗ SQL
+		if (get_post_type( $acl_group_id ) != 'user_group') return;
+		$all_posts = get_posts("numberposts=-1&fields=ids&post_type=any");
+		foreach($all_posts as $single_post){
+			delete_post_meta($single_post, 'acl_groups_read', $acl_group_id);
+		}
+	}
     
     function auto_add_access(){
         //Если пользователю дан доступ полный, то автоматом дать доступ Чтение и Правка.
@@ -44,11 +53,13 @@ class acl_posts {
             $ids = get_post_meta( $_REQUEST['post_id'], 'acl_users_read');
 
         foreach ($ids as $user_id){
-            $user = get_userdata($user_id);
-            $elements[] = array(
-                'id' => $user_id,
-                'title' => $user->display_name
-                );			
+			if (!empty($user_id)){
+				$user = get_userdata($user_id);
+				$elements[] = array(
+					'id' => $user_id,
+					'title' => $user->display_name
+					);		
+			}
         }
 
         echo json_encode($elements);
@@ -63,11 +74,13 @@ class acl_posts {
             $ids = get_post_meta( $_REQUEST['post_id'], 'acl_groups_read');
 
         foreach ($ids as $id){
-            $group = get_post($id);
-            $elements[] = array(
-                'id' => $id,
-                'title' => $group->post_title
-                );			
+			if (!empty($id)){
+				$group = get_post($id);
+				$elements[] = array(
+					'id' => $id,
+					'title' => $group->post_title
+					);
+			}				
         }
 
         echo json_encode($elements);
@@ -82,7 +95,7 @@ class acl_posts {
         
         //добавляем новые ИД если их нет в старом списке
         foreach ( $acl_users_read as $user_id ) {
-            if (!(in_array($user_id, $old_acl_users_read)))
+            if (!(in_array($user_id, $old_acl_users_read)) && !empty($user_id))
                 add_post_meta($post_id, 'acl_users_read', $user_id);
         }
         
@@ -101,14 +114,14 @@ class acl_posts {
         
         //добавляем новые ИД если их нет в старом списке
         foreach ( $acl_groups_read as $group_id ) {
-            if (!(in_array($group_id, $old_acl_groups_read)))
+			if (!(in_array($group_id, $old_acl_groups_read)) && !empty($group_id))
                 add_post_meta($post_id, 'acl_groups_read', $group_id);
         }
         
         //удаляем старые ИД если их нет в новом списке
         foreach ( $old_acl_groups_read as $old_group_id ) {
             if (!(in_array($old_group_id, $acl_groups_read)))
-                delete_post_meta($post_id, 'acl_groups_read', $old_group_id);
+				delete_post_meta($post_id, 'acl_groups_read', $old_group_id);
         }       
         
         //$acl_groups_edit = $_REQUEST['acl_groups_edit'];
@@ -209,6 +222,7 @@ class acl_posts {
                             url: "<?php echo admin_url('admin-ajax.php') ?>",
                             success: function(data) {
                                 acl = jQuery.parseJSON(data);
+								console.log(acl);
                                 jQuery('#acl_users_read').select2('data',  acl);
                             }
                         });
@@ -274,6 +288,7 @@ class acl_posts {
                             url: "<?php echo admin_url('admin-ajax.php') ?>",
                             success: function(data) {
                                 acl = $.parseJSON(data);
+								console.log(acl);
                                 $('#acl_users').select2('data',  acl);
                             }
                         });
@@ -367,7 +382,9 @@ class acl_substitutes {
         
         //добавляем новые ИД если их нет в старом списке
         foreach ( $acl_substitutes as $sub_id ) {
+			if(!empty($sub_id)){
                 add_user_meta($user_id, $meta_key, $sub_id);
+			}
         }
     }
     
@@ -444,11 +461,13 @@ class acl_groups {
             $ids = get_post_meta( $_REQUEST['post_id'], 'users');
 
         foreach ($ids as $user_id){
-            $user = get_userdata($user_id);
-            $elements[] = array(
-                'id' => $user_id,
-                'title' => $user->display_name
-                );			
+			if(!empty($user_id)){
+				$user = get_userdata($user_id);
+				$elements[] = array(
+					'id' => $user_id,
+					'title' => $user->display_name
+					);
+			}
         }
 
         echo json_encode($elements);
@@ -559,11 +578,12 @@ class acl_groups {
 
             $elements = array();
             foreach ($query->posts as $post_id){
-                
-                $elements[] = array(
-                    'id' => $post_id,
-                    'title' => get_the_title($post_id),
-                    );
+                if(!empty($post_id)){
+					$elements[] = array(
+						'id' => $post_id,
+						'title' => get_the_title($post_id),
+						);
+				}
             }
 			
             $data[] = array(
@@ -586,11 +606,13 @@ class acl_groups {
 
             $elements = array();
             foreach ($query->results as $user){
-                $elements[] = array(
-                    'id' => $user->ID,
-                    'title' => $user->display_name,
-                    'email' => $user->user_email,
-                    );
+				if(!empty($user)){
+					$elements[] = array(
+						'id' => $user->ID,
+						'title' => $user->display_name,
+						'email' => $user->user_email,
+						);
+				}
             }
 			
             $data[] = array(
@@ -626,7 +648,9 @@ class acl_groups {
     
       if(isset($_POST['users'])){
         foreach ( ( array ) explode( ',', trim( $_POST['users'] ) ) as $user_id ) {
-            add_post_meta($post_id, 'users', $user_id, false);
+			if (!empty($user_id)){
+				add_post_meta($post_id, 'users', $user_id, false);
+			}
         }
       }
        
@@ -651,8 +675,8 @@ class ACL {
         global $wpdb;
         
         
-        if (current_user_can('full_access_to_posts') or current_user_can('editor')) return $where;
-   
+        if (current_user_can('full_access_to_posts') or current_user_can('editor') or current_user_can('administrator')) return $where;
+		//else die();
 		$acl_users[] = get_current_user_id();
 		$sub = get_user_meta(get_current_user_id(), 'acl_substitutes');
 		$acl_users = array_merge( $sub, $acl_users);
@@ -663,24 +687,28 @@ class ACL {
 		$args = array(  
 			'fields' => 'ids',
 			'post_type' => 'any',
-			'meta_query' => array(  
+			'meta_query' => array(
 				'relation' => 'OR',  
 				array(  
 					'key' => 'acl_users_read',  
 					'value' => $acl_users
-				),
-				array(  
-					'key' => 'acl_groups_read',
-					'value' => $acl_groups_id
 				)
 			)
 		);
+		
+		if(!empty($acl_groups_id))
+			$args['meta_query'][] = array(  
+					'key' => 'acl_groups_read',
+					'value' => $acl_groups_id
+				);
 
 		$ids = get_posts($args);
+
 		$ids = implode(",", $ids);
 
-		$pts = "'report', 'cases'";
-
+		$pts = "'report', 'cases', 'post', 'document'";
+		
+		
 		$where .= " AND (if(".$wpdb->posts.".post_type in (".$pts."),if(".$wpdb->posts.".ID IN (" . $ids . "),1,0),1)=1)";
 
 		return $where;
