@@ -34,9 +34,10 @@ class ACL {
 	Фильтр постов на основе наличия доступа	
 	*/
     function acl_filter_where($where) {
-		if (current_user_can('full_access_to_posts') or current_user_can('editor') or current_user_can('administrator')) return $where;
+		//if (current_user_can('full_access_to_posts') or current_user_can('editor') or current_user_can('administrator')) return $where;
 		
 		$current_usr_id = get_current_user_id();
+		if (user_can($current_usr_id, 'full_access_to_posts') or user_can($current_usr_id, 'editor') or user_can($current_usr_id, 'administrator')) return $where;
 		$acl_users[] = $current_usr_id;
 		$sub = get_user_meta(get_current_user_id(), 'acl_substitutes');
 		$acl_users = array_merge( $sub, $acl_users);
