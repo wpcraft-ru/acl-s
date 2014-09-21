@@ -16,13 +16,21 @@ class acl_ui_posts {
         add_action( 'delete_post', array($this, 'delete_acl_metas'), 10, 1 );
         //add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));
 
-        add_filter( 'acl_users_list', 'acl_users_list_save_post', 10, 2 );
+        add_filter( 'acl_users_list', array($this, 'acl_users_list_save_post'), 10, 2 );
+        
+        add_action( 'added_post_meta', array($this, 'meta_change_acl_update'), 10, 2 );
+        add_action( 'updated_post_meta', array($this, 'meta_change_acl_update'), 10, 2 );
+        add_action( 'deleted_post_meta', array($this, 'meta_change_acl_update'), 10, 2 );
     }
 
     function acl_users_list_save_post($users_ids, $post_id){
         $saved_users_ids = get_post_meta($post_id, 'acl_users_read');
 
         return array_merge($users_ids, $saved_users_ids);
+    }
+
+    function meta_change_acl_update($meta_id, $post_id){
+        $this->update_acl_cp($post_id);
     }
 	
 	// функции для работы с таблицей acl
@@ -411,8 +419,8 @@ class acl_ui_posts {
 				add_post_meta($post_id, 'acl_groups_read', $group_id);
 			}
         }
-        
-        $this->update_acl_cp($post_id);
+
+        //$this->update_acl_cp($post_id);
     }
     
     function add_field_to_submitbox() {
