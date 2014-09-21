@@ -15,7 +15,14 @@ class acl_ui_posts {
         add_action( 'wp_ajax_get_acl_groups_for_post', array($this, 'get_acl_groups_for_post_callback') );
         add_action( 'delete_post', array($this, 'delete_acl_metas'), 10, 1 );
         //add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));
-        
+
+        add_filter( 'acl_users_list', 'acl_users_list_save_post', 10, 2 );
+    }
+
+    function acl_users_list_save_post($users_ids, $post_id){
+        $saved_users_ids = get_post_meta($post_id, 'acl_users_read');
+
+        return array_merge($users_ids, $saved_users_ids);
     }
 	
 	// функции для работы с таблицей acl
@@ -48,7 +55,9 @@ class acl_ui_posts {
 
     function update_acl_cp($post_id){
 
-        $users_ids = apply_filters( 'acl_users_list', array() );
+        $users_ids = apply_filters( 'acl_users_list', array(), $post_id );
+
+        $users_ids = array_unique($users_ids);
 
         foreach ($users_ids as $user_id) {
             update_ACL_meta ('user', 'post', $user_id, $post_id);
