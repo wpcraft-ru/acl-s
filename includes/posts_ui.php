@@ -8,13 +8,13 @@ $TheACL_posts = new acl_ui_posts();
 class acl_ui_posts {
     
     function __construct() {
-        //add_action('post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
-        //add_action( 'wp_ajax_save_acl_post', array($this, 'save_acl_post_callback') );
+        add_action( 'post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
+        add_action( 'wp_ajax_save_acl_post', array($this, 'save_acl_post_callback') );
 		add_action( 'save_post', array($this, 'save_acl_post_callback') );
         add_action( 'wp_ajax_get_acl_users_for_post', array($this, 'get_acl_users_for_post_callback') );
         add_action( 'wp_ajax_get_acl_groups_for_post', array($this, 'get_acl_groups_for_post_callback') );
         add_action( 'delete_post', array($this, 'delete_acl_metas'), 10, 1 );
-        add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));
+        //add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));
         
     }
 	
@@ -45,6 +45,15 @@ class acl_ui_posts {
 		//$wpdb->print_error();
 		return $result;
 	}
+
+    function update_acl_cp($post_id){
+
+        $users_ids = apply_filters( 'acl_users_list', array() );
+
+        foreach ($users_ids as $user_id) {
+            update_ACL_meta ('user', 'post', $user_id, $post_id);
+        }
+    }
 	
 	function get_ACL_meta($subject_type, $object_type, $object_id) {
 	    global $wpdb;
@@ -355,15 +364,6 @@ class acl_ui_posts {
     }
     
     function save_acl_post_callback($post_id){
-
-		//09.07.2014 закомментил Резанов Е.В.
-		//непонятно зачем это здесь, поставил новую проверку
-		
-		/*if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
-			return $post_id;
-		$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
-		if ( !in_array($_REQUEST['post_type'], $screens) )  
-			return $post_id;*/
 				
         // не происходит ли автосохранение? 
         if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) 
@@ -374,94 +374,34 @@ class acl_ui_posts {
 		// нужный ли тип поста?	
 		$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
 		if ( !in_array($_REQUEST['post_type'], $screens) )  
-			return;		
-			
-        //error_log('все ок >>>>>>>>>>>>>>>>>>>>>>>>>>>>сохраняем пост:'.$post_id);
-		
+			return;
+
         $acl_users_read = explode(',', trim($_REQUEST['acl_users_read']));
-        //$old_acl_users_read = get_post_meta($post_id, 'acl_users_read');
-		
-		$old_acl_users_read_table = $this->get_ACL_meta('user', 'post', $post_id);
-		$usersids=array();
-		if ($old_acl_users_read_table){
-		    foreach($old_acl_users_read_table as $old_acl_user_read_table) {
-		        $usrid = $old_acl_user_read_table->subject_id;
-			    //error_log('пользователь который может читать:'.$usrid);
-				$usersids[]=$usrid;
-		    }
-		}
-        //ВНИМАНИЕ!!! перезададим переменные с пользователями из таблицы для проверки
-		//print_r($old_acl_users_read);
-		//print_r($usersids);
+        $acl_users_read[] = get_current_user_id();
+        $old_acl_users_read = get_post_meta($post_id, 'acl_users_read');
 
-		$old_acl_users_read = $usersids;
-		
-        foreach ( $acl_users_read as $user_id ) {
-
-            if (!(in_array($user_id, $old_acl_users_read)) && !empty($user_id)){
-
-                add_post_meta($post_id, 'acl_users_read', $user_id);
-				// аналогично
-				//error_log('смотрим ИД снова>>>>>>>>>>>'.$post_id);
-				$this->update_ACL_meta('user', 'post', $user_id, $post_id);
-				
-			}
+        if($acl_users_read != $old_acl_users_read){
+            delete_post_meta($post_id, 'acl_users_read');
         }
 
-        foreach ( $old_acl_users_read as $old_user_id ) {
-		    //error_log('пользователь '.$old_user_id);
-            if (!(in_array($old_user_id, $acl_users_read))){
-                //error_log('нет в новом списке');
-				delete_post_meta($post_id, 'acl_users_read', $old_user_id);
-				//error_log('удаляем из таблицы user= '.$old_user_id.' для поста= '.$post_id);
-				$this->delete_ACL_meta('user', 'post', $old_user_id, $post_id);
+        foreach ( $acl_users_read as $user_id ) {
+            if (!(in_array($user_id, $old_acl_users_read)) && !empty($user_id)){
+                add_post_meta($post_id, 'acl_users_read', $user_id);
 			}
         }
         
         $acl_groups_read = $_REQUEST['acl_groups_read'];
-        
-        //$old_acl_groups_read = get_post_meta($post_id, 'acl_groups_read');
-		$old_acl_groups_read_table = $this->get_ACL_meta('group', 'post', $post_id);
-		$old_acl_groups_read_array=array();
-		if ($old_acl_groups_read_table){
-		    foreach($old_acl_groups_read_table as $old_acl_group_read_table) {
-		        $groupid = $old_acl_group_read_table->subject_id;
-			    //error_log('пользователь который может читать:'.$usrid);
-				$old_acl_groups_read_array[]=$groupid;
-		    }
-		}
-		//error_log($old_acl_groups_read_table);
-        //ВНИМАНИЕ!!! перезададим переменные с пользователями из таблицы для проверки
-		$old_acl_groups_read=$old_acl_groups_read_array;
-		
-        foreach ( $acl_groups_read as $group_id ) {
-			//$group_id = trim($group_id);
-			//error_log('группа '.$group_id );
-			if (!(in_array($group_id, $old_acl_groups_read)) && !empty($group_id)){
-                //error_log('нет в новом списке');
-				add_post_meta($post_id, 'acl_groups_read', $group_id);
-				$this->update_ACL_meta('group', 'post', $group_id, $post_id);
-			}
-				
+        $old_acl_groups_read = get_post_meta($post_id, 'acl_groups_read');
+
+        if($acl_groups_read != $old_acl_groups_read){
+            delete_post_meta($post_id, 'acl_groups_read');
         }
-        
-        foreach ( $old_acl_groups_read as $old_group_id ) {
-		    //error_log('группа '.$old_group_id );
-            if (!(in_array($old_group_id, $acl_groups_read))){
-				//error_log('нет в новом списке');
-				delete_post_meta($post_id, 'acl_groups_read', $old_group_id);
-				//error_log('удаляем из таблицы group= '.$old_group_id.' для поста= '.$post_id);
-				$this->delete_ACL_meta('group', 'post', $old_group_id, $post_id);
+
+        foreach ( $acl_groups_read as $group_id ) {
+			if (!(in_array($group_id, $old_acl_groups_read)) && !empty($group_id)){
+				add_post_meta($post_id, 'acl_groups_read', $group_id);
 			}
-        }       
-		
-		// добавим автора поста в список тех кто может читать
-		// 27.06.2014 Резанов Евгений
-		$author_id=get_current_user_id();
-		add_post_meta($post_id, 'acl_users_read', $author_id);
-		$this->update_ACL_meta('user', 'post', $author_id, $post_id);
-		//---------------------------------------------------
-        
+        }
     }
     
     function add_field_to_submitbox() {
@@ -473,7 +413,6 @@ class acl_ui_posts {
             <a href='#TB_inline?width=600&height=550&inlineId=acl_form' class="thickbox">Настроить</a>
         </div>
         <div id='acl_form' style='display:none;'>
-            <br />
             <p>Укажите пользователей и группы, в соответствии с требуемым уровнем доступа.</p>
             <p><a href='#ok' id='save_acl_post'>Сохранить</a></p>
             <script type="text/javascript">
@@ -506,7 +445,7 @@ class acl_ui_posts {
             <fieldset id='users_access'>
                 <legend><h1>Доступ пользователей</h1></legend>
                 <br />
-                <label for='acl_users_read'>На чтение</label><br /><input id='acl_users_read' class='select2field'></input><br />
+                <label for='acl_users_read'>На чтение</label><br /><input id='acl_users_read' name='acl_users_read' class='select2field' /><br />
             </fieldset>
             <script>
                 jQuery(document).ready(function($) {
@@ -573,7 +512,7 @@ class acl_ui_posts {
                 <legend><h1>Доступ для групп</h1></legend>
                 <br />
                 <label for='acl_groups_read'>На чтение</label><br />
-                <input id='acl_groups_read' class='select2field'></input><br />
+                <input id='acl_groups_read' name='acl_groups_read' class='select2field' /><br />
             </fieldset>
             <script>
                 jQuery(document).ready(function($) {
