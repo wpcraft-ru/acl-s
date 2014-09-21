@@ -411,6 +411,8 @@ class acl_ui_posts {
 				add_post_meta($post_id, 'acl_groups_read', $group_id);
 			}
         }
+        
+        $this->update_acl_cp($post_id);
     }
     
     function add_field_to_submitbox() {
