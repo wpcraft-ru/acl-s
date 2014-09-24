@@ -77,7 +77,7 @@ class acl_ui_posts {
         $users_ids = array_unique($users_ids);
 
         foreach ($users_ids as $user_id) {
-            update_ACL_meta ('user', 'post', $user_id, $post_id);
+            $this->update_ACL_meta ('user', 'post', $user_id, $post_id);
         }
     }
 	
