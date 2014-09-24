@@ -18,6 +18,8 @@ require_once('includes/groups.php');
 require_once('includes/deputies.php');
 //Пользовательский интерфейс для указания пользователей и групп у постов
 require_once('includes/posts_ui.php');
+//Страница настроек
+require_once('includes/settings-api.php');
 
 
 
@@ -53,7 +55,8 @@ class ACL {
 		//$acl_groups_id = get_posts("fields=ids&post_type=user_group&meta_key=users&meta_value=".$current_usr_id);
 
 		//Определяем типы постов для контроля доступа
-		$pt_array = array( 'report', 'cases', 'post', 'document', 'forum' );
+		//$pt_array = array( 'report', 'cases', 'post', 'document', 'forum' );
+        $pt_array = get_option( 'cp_acl_posts_types' );
 		$pt = "'".implode("','", $pt_array)."'";
 		//Определяем статусы постов для контроля доступа
 		//добавил Резанов Е.В. 09.07.2014 

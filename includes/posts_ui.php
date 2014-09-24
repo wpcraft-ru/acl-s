@@ -17,10 +17,11 @@ class acl_ui_posts {
         //add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));
 
         add_filter( 'acl_users_list', array($this, 'acl_users_list_save_post'), 10, 2 );
+        add_filter( 'acl_users_list', array($this, 'acl_users_list_members'), 10, 2 );
         
-        add_action( 'added_post_meta', array($this, 'meta_change_acl_update'), 10, 2 );
-        add_action( 'updated_post_meta', array($this, 'meta_change_acl_update'), 10, 2 );
-        add_action( 'deleted_post_meta', array($this, 'meta_change_acl_update'), 10, 2 );
+        add_action( 'added_post_meta', array($this, 'meta_change_acl_update'), 10, 3 );
+        add_action( 'updated_post_meta', array($this, 'meta_change_acl_update'), 10, 3 );
+        add_action( 'deleted_post_meta', array($this, 'meta_change_acl_update'), 10, 3 );
     }
 
     function acl_users_list_save_post($users_ids, $post_id){
@@ -29,8 +30,16 @@ class acl_ui_posts {
         return array_merge($users_ids, $saved_users_ids);
     }
 
-    function meta_change_acl_update($meta_id, $post_id){
-        $this->update_acl_cp($post_id);
+    function acl_users_list_members($users_ids, $post_id){
+        $saved_users_ids = get_post_meta($post_id, 'members-cp-posts-sql');
+
+        return array_merge($users_ids, $saved_users_ids);
+    }
+
+    function meta_change_acl_update($meta_id, $post_id, $meta_key){
+		if(in_array($meta_key, array('acl_users_read', 'members-cp-posts-sql'))){
+			$this->update_acl_cp($post_id);
+		}
     }
 	
 	// функции для работы с таблицей acl
@@ -113,7 +122,8 @@ class acl_ui_posts {
 	
 	function add_acl_meta_box() {
 
-		$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
+		//$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
+		$screens = get_option( 'cp_acl_posts_types' );
 
 		foreach ( $screens as $screen ) {
 
@@ -389,8 +399,9 @@ class acl_ui_posts {
         if (wp_is_post_revision($post_id)) 
             return; 
 		// нужный ли тип поста?	
-		$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
-		if ( !in_array($_REQUEST['post_type'], $screens) )  
+		//$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
+		$screens = get_option( 'cp_acl_posts_types' );
+		if ( !in_array($_REQUEST['post_type'], $screens) )
 			return;
 
         $acl_users_read = explode(',', trim($_REQUEST['acl_users_read']));
