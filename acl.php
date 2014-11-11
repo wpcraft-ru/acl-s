@@ -3,9 +3,11 @@
 Plugin Name: ACL
 Plugin URI: http://www.casepress.org/
 Description: Access control list for WP
-Version: 20130816
+Version: 20141111
 Author: CasePress Studio
-Author URI: http://www.casepress.org
+Author URI: http://casepress.org
+GitHub Plugin URI: https://github.com/casepress-studio/acl-by-cps/
+GitHub Branch: master
 License: GPL
 */
 
