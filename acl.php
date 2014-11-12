@@ -84,12 +84,12 @@ class ACL {
 		// на данном этапе имеем ИД пользователя и ИД групп куда он входит
 		// получим ИД постов из таблицы ACL с доступом и переводим их в запятые.
 		// код только не красивый
-		$ids_usr = ACL_get_post_for_where($current_usr_id, 'user');
+		$ids_usr = get_post_for_where_acl_cp($current_usr_id, 'user');
 		$ids_group = array();
 		if(!empty($acl_groups_id)) {
 		    foreach ($acl_groups_id as $acl_group_id) {
 		        $tmp=array();
-			    $tmp=ACL_get_post_for_where($acl_group_id, 'group');
+			    $tmp=get_post_for_where_acl_cp($acl_group_id, 'group');
 				$ids_group = $ids_group+$tmp;
 			}
 		}
@@ -148,7 +148,7 @@ $theACL = new ACL();
 /* функция для выборки постов из таблицы
  по ИД пользователя, либо по ИД группы
  возвращает массив ИД постов*/
-function ACL_get_post_for_where($subject_id, $subject_type){
+function get_post_for_where_acl_cp($subject_id, $subject_type){
         global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
 		$object_type='post';
