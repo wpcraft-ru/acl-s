@@ -310,7 +310,7 @@ class acl_groups {
 	        'order'           => 'DESC',
 	        'include'         => '',
 	        'exclude'         => '',
-	        'meta_key'        => 'acl_users_read',
+	        'meta_key'        => 'acl_users',
 	        'meta_value'      => $user_id,
 	        'post_type'       => 'post',
 	        'post_mime_type'  => '',
@@ -320,7 +320,7 @@ class acl_groups {
 		foreach($posts as $post){ 
 		    setup_postdata($post);
 			$post_id=$post->ID;
-			delete_post_meta($post_id, 'acl_users_read', $user_id);
+			delete_post_meta($post_id, 'acl_users', $user_id);
         }
         wp_reset_postdata();
 		
