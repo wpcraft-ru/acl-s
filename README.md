@@ -10,11 +10,11 @@
 
 #### Описание основных функции для работы с таблицей ACL :
 
-1. ACL_get_post_for_where($subject_id, $subject_type) - функция для выборки постов из таблицы по ИД пользователя, либо по ИД группы возвращает массив ИД постов
-2. update_ACL_meta($subject_type, $object_type, $subject_id, $object_id) - функция обновляет таблицу
-3. get_ACL_meta($subject_type, $object_type, $object_id) - функция возвращает массив ИД постов
-4. delete_ACL_meta($subject_type, $object_type, $subject_id, $object_id) - функция удаляет запись из таблицы
-5. check_ACL_meta($subject_type, $object_type, $subject_id, $object_id) - функция проверяет наличие записи в таблице
+1. **ACL_get_post_for_where($subject_id, $subject_type)** - функция для выборки постов из таблицы по ИД пользователя, либо по ИД группы возвращает массив ИД постов
+2. **update_ACL_meta($subject_type, $object_type, $subject_id, $object_id)** - функция обновляет таблицу
+3. **get_ACL_meta($subject_type, $object_type, $object_id)** - функция возвращает массив ИД постов
+4. **delete_ACL_meta($subject_type, $object_type, $subject_id, $object_id)** - функция удаляет запись из таблицы
+5. **check_ACL_meta($subject_type, $object_type, $subject_id, $object_id)** - функция проверяет наличие записи в таблице
 
 ## Todo
 1. Хранение данных о выданном доступе в отдельной мете
