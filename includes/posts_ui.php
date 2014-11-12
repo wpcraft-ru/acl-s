@@ -26,14 +26,14 @@ class acl_ui_posts {
 
     function acl_users_list_save_post($users_ids, $post_id){
         $saved_users_ids = get_post_meta($post_id, 'acl_users_read');
-
-        return array_merge($users_ids, $saved_users_ids);
+        $post_users = array_merge($users_ids, $saved_users_ids); 
+        return array_unique($post_users);
     }
 
     function acl_users_list_members($users_ids, $post_id){
         $saved_users_ids = get_post_meta($post_id, 'members-cp-posts-sql');
-
-        return array_merge($users_ids, $saved_users_ids);
+        $post_users = array_merge($users_ids, $saved_users_ids);
+        return array_unique($post_users);
     }
 
     function meta_change_acl_update($meta_id, $post_id, $meta_key){
