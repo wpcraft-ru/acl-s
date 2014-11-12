@@ -145,10 +145,126 @@ class ACL {
 
 $theACL = new ACL();
 
+
+	// функции для работы с таблицей ACL
+	
+    function add_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
+	    global $wpdb;
+		$table_name = $wpdb->prefix . "acl";
+		// проверим есть ли такая запись если есть - обновим, если нет, то добавим
+		$check_acl_table=check_acl_cp($subject_type, $object_type, $subject_id, $object_id);
+		//error_log('$check_acl_table='.$check_acl_table);
+		if (!$check_acl_table){
+		    //error_log('нет такой записи, добавляем '.$subject_type.' '.$subject_id.' для :'.$object_id);
+		    $data=array('subject_id'=>$subject_id, 'subject_type'=>$subject_type, 'object_type'=>'post', 'object_id'=>$object_id);
+		    $format=array('%d','%s', '%s', '%d');
+		    $result = $wpdb->insert($table_name, $data, $format);    
+		}
+		else {
+		    //error_log('есть такая запись. обновляем:'.$object_id);
+		    $data=array('subject_id'=>$subject_id, 'subject_type'=>$subject_type, 'object_type'=>'post');
+		    $format=array('%d','%s', '%s');
+			$where=array('object_id'=>$object_id);
+			$where_format=array('%d');
+		    $result = $wpdb->update($table_name, $data, $format, $where, $where_format);
+		}
+
+	    //$wpdb->show_errors();
+		//$wpdb->print_error();
+		return $result;
+	}
+
+	function get_acl_cp($subject_type, $object_type, $object_id) {
+	    global $wpdb;
+		$table_name = $wpdb->prefix . "acl";
+		$sql = $wpdb->prepare("SELECT subject_id FROM $table_name  WHERE object_type=%s AND subject_type=%s AND object_id=%d",$object_type, $subject_type, $object_id);
+		$subjects_ids = $wpdb->get_results($sql);
+		
+		return $subjects_ids;
+	}
+	
+	function check_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
+	    // проверяем есть ли уже в таблице такая запись 
+		global $wpdb;
+		$table_name = $wpdb->prefix . "acl";
+		$subjects_ids = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name  WHERE object_type=%s AND subject_type=%s AND object_id=%d AND subject_id=%s",$object_type, $subject_type, $object_id, $subject_id));
+		//$subjects_ids = $wpdb->get_results($sql);
+		
+		return $subjects_ids;
+	}
+	
+    function update_acl_cp($post_id){
+
+        $users_ids = apply_filters( 'acl_users_list', array(), $post_id );
+
+        $users_ids = array_unique($users_ids);
+
+        foreach ($users_ids as $user_id) {
+            add_acl_cp ('user', 'post', $user_id, $post_id);
+        }
+    }
+	
+	add_action( 'delete_post', 'del_acl_cps', 10, 1 );
+	function del_acl_cp($subject_type, $object_type, $subject_id, $object_id) {
+	    global $wpdb;
+		$table_name = $wpdb->prefix . "acl";
+		$result=0;
+		// проверим, если такая запись есть то удалим
+		$check_acl_table=check_acl_cp($subject_type, $object_type, $subject_id, $object_id);
+		//error_log($check_acl_table);
+		if ($check_acl_table) {
+		    //error_log('есть такая запись, удаляем');
+		    $sql = $wpdb->prepare("DELETE FROM $table_name WHERE object_id =%d AND subject_type=%s AND object_type=%s AND subject_id=%d", $object_id, $subject_type, $object_type, $subject_id);
+	        $result = $wpdb->query($sql);
+            //$wpdb->show_errors();
+		    //$wpdb->print_error();
+            
+        }
+		return $result;	
+		
+	}
+
+	
+    
+	add_filter( 'acl_users_list', 'acl_users_list_save_post', 10, 2 );
+	function acl_users_list_save_post($users_ids, $post_id){
+        $saved_users_ids = get_post_meta($post_id, 'acl_users_read');
+        $post_users = array_merge($users_ids, $saved_users_ids); 
+        return array_unique($post_users);
+    }
+
+	add_filter( 'acl_users_list', 'acl_users_list_members', 10, 2 );
+    function acl_users_list_members($users_ids, $post_id){
+        $saved_users_ids = get_post_meta($post_id, 'members-cp-posts-sql');
+        $post_users = array_merge($users_ids, $saved_users_ids);
+        return array_unique($post_users);
+    }
+
+	add_action( 'added_post_meta', 'meta_change_acl_update', 10, 3 );
+    add_action( 'updated_post_meta', 'meta_change_acl_update', 10, 3 );
+    add_action( 'deleted_post_meta', 'meta_change_acl_update', 10, 3 );
+    function meta_change_acl_update($meta_id, $post_id, $meta_key){
+		if(in_array($meta_key, array('acl_users_read', 'members-cp-posts-sql'))){
+			update_acl_cp($post_id);
+		}
+    }
+
+	add_action( 'delete_post','del_acl_cps', 10, 1 );
+	function del_acl_cps($acl_group_id){
+		//ПРИ ОГРОМНОМ КОЛ-ВЕ ПОСТОВ МОЖЕТ ВЫЗВАТЬ ЗАМЕДЛЕНИЕ РАБОТЫ! РЕШЕНИЕ ПЕРЕДЕЛАТЬ ЧЕРЕЗ SQL
+		if (get_post_type( $acl_group_id ) != 'user_group') return;
+		$all_posts = get_posts("numberposts=-1&fields=ids&post_type=any");
+		foreach($all_posts as $single_post){
+			delete_post_meta($single_post, 'acl_groups_read', $acl_group_id);
+			del_acl_cp('group', 'post', $acl_group_id, $single_post);
+		}
+	}
+	
+	
 /* функция для выборки постов из таблицы
  по ИД пользователя, либо по ИД группы
  возвращает массив ИД постов*/
-function get_post_for_where_acl_cp($subject_id, $subject_type){
+	function get_post_for_where_acl_cp($subject_id, $subject_type){
         global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
 		$object_type='post';
@@ -166,44 +282,44 @@ function get_post_for_where_acl_cp($subject_id, $subject_type){
 }
 
 // действия при активации\деактивации\удалении плагина
-function ACL_Setup_on_activation()
-{
-	if ( ! current_user_can( 'activate_plugins' ) )
-		return;
-	$plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
-	check_admin_referer( "activate-plugin_{$plugin}" );
-	acl_create_table();
-	// Расcкомментируйте эту строку, чтобы увидеть функцию в действии
-	// exit( var_dump( $_GET ) );
+	register_activation_hook(   __FILE__, 'ACL_Setup_on_activation' );
+	function ACL_Setup_on_activation(){
+		if ( ! current_user_can( 'activate_plugins' ) )
+			return;
+		$plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
+		check_admin_referer( "activate-plugin_{$plugin}" );
+		acl_create_table();
+		// Расcкомментируйте эту строку, чтобы увидеть функцию в действии
+		// exit( var_dump( $_GET ) );
+	}
+
+	register_deactivation_hook( __FILE__, 'ACL_Setup_on_deactivation' );
+	function ACL_Setup_on_deactivation(){
+		if ( ! current_user_can( 'activate_plugins' ) )
+			return;
+		$plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
+		check_admin_referer( "deactivate-plugin_{$plugin}" );
+
+		// Расcкомментируйте эту строку, чтобы увидеть функцию в действии
+		//exit( var_dump( $_GET ) );
 }
 
-function ACL_Setup_on_deactivation()
-{
-	if ( ! current_user_can( 'activate_plugins' ) )
-		return;
-	$plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
-	check_admin_referer( "deactivate-plugin_{$plugin}" );
+	register_uninstall_hook(    __FILE__, 'ACL_Setup_on_uninstall' );
+	function ACL_Setup_on_uninstall(){
+		if ( ! current_user_can( 'activate_plugins' ) )
+			return;
+		check_admin_referer( 'bulk-plugins' );
 
-	// Расcкомментируйте эту строку, чтобы увидеть функцию в действии
-	//exit( var_dump( $_GET ) );
-}
+		// Важно: проверим тот ли это файл, который
+		// был зарегистрирован в процессе хука удаления.
+		if ( __FILE__ != WP_UNINSTALL_PLUGIN )
+			return;
+		//error_log('// Расcкомментируйте эту строку, чтобы увидеть функцию в действии');
+		// Раскомментируйте эту строку, чтобы увидеть функцию в действии
+		//exit( var_dump( $_GET ) );
+	}	
 
-function ACL_Setup_on_uninstall()
-{
-	if ( ! current_user_can( 'activate_plugins' ) )
-		return;
-	check_admin_referer( 'bulk-plugins' );
-
-	// Важно: проверим тот ли это файл, который
-	// был зарегистрирован в процессе хука удаления.
-	if ( __FILE__ != WP_UNINSTALL_PLUGIN )
-		return;
-    //error_log('// Расcкомментируйте эту строку, чтобы увидеть функцию в действии');
-	// Раскомментируйте эту строку, чтобы увидеть функцию в действии
-	//exit( var_dump( $_GET ) );
-}	
-
-function acl_create_table () {
+	function acl_create_table () {
     global $wpdb;
     $table_name = $wpdb->prefix . "acl";
 	error_log($table_name);
@@ -222,9 +338,14 @@ function acl_create_table () {
     }
 }
 
-register_activation_hook(   __FILE__, 'ACL_Setup_on_activation' );
-register_deactivation_hook( __FILE__, 'ACL_Setup_on_deactivation' );
-register_uninstall_hook(    __FILE__, 'ACL_Setup_on_uninstall' );
+	//TODO
+    function auto_add_access(){
+        //Если пользователю дан доступ полный, то автоматом дать доступ Чтение и Правка.
+        //Если правка, то дать чтение.
+        //На чтение должен быть доступ у всех
+        //Это же правило относится к группам.
+    }
 
+	
 
 ?>

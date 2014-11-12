@@ -4,6 +4,7 @@
 /*
  * Механика для работы с метаданными ACL в постах
  */
+
 $TheACL_posts = new acl_ui_posts();
 class acl_ui_posts {
     
@@ -13,113 +14,9 @@ class acl_ui_posts {
 		add_action( 'save_post', array($this, 'save_acl_post_callback') );
         add_action( 'wp_ajax_get_acl_users_for_post', array($this, 'get_acl_users_for_post_callback') );
         add_action( 'wp_ajax_get_acl_groups_for_post', array($this, 'get_acl_groups_for_post_callback') );
-        add_action( 'delete_post', array($this, 'del_acl_cps'), 10, 1 );
-        //add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));
-
-        add_filter( 'acl_users_list', array($this, 'acl_users_list_save_post'), 10, 2 );
-        add_filter( 'acl_users_list', array($this, 'acl_users_list_members'), 10, 2 );
-        
-        add_action( 'added_post_meta', array($this, 'meta_change_acl_update'), 10, 3 );
-        add_action( 'updated_post_meta', array($this, 'meta_change_acl_update'), 10, 3 );
-        add_action( 'deleted_post_meta', array($this, 'meta_change_acl_update'), 10, 3 );
+        //add_action( 'add_meta_boxes', array($this, 'add_acl_meta_box'));        
     }
 
-    function acl_users_list_save_post($users_ids, $post_id){
-        $saved_users_ids = get_post_meta($post_id, 'acl_users_read');
-        $post_users = array_merge($users_ids, $saved_users_ids); 
-        return array_unique($post_users);
-    }
-
-    function acl_users_list_members($users_ids, $post_id){
-        $saved_users_ids = get_post_meta($post_id, 'members-cp-posts-sql');
-        $post_users = array_merge($users_ids, $saved_users_ids);
-        return array_unique($post_users);
-    }
-
-    function meta_change_acl_update($meta_id, $post_id, $meta_key){
-		if(in_array($meta_key, array('acl_users_read', 'members-cp-posts-sql'))){
-			$this->update_acl_cp($post_id);
-		}
-    }
-	
-	// функции для работы с таблицей acl
-	
-	function add_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
-	    global $wpdb;
-		$table_name = $wpdb->prefix . "acl";
-		// проверим есть ли такая запись если есть - обновим, если нет, то добавим
-		$check_acl_table=$this->check_acl_cp($subject_type, $object_type, $subject_id, $object_id);
-		//error_log('$check_acl_table='.$check_acl_table);
-		if (!$check_acl_table){
-		    //error_log('нет такой записи, добавляем '.$subject_type.' '.$subject_id.' для :'.$object_id);
-		    $data=array('subject_id'=>$subject_id, 'subject_type'=>$subject_type, 'object_type'=>'post', 'object_id'=>$object_id);
-		    $format=array('%d','%s', '%s', '%d');
-		    $result = $wpdb->insert($table_name, $data, $format);    
-		}
-		else {
-		    //error_log('есть такая запись. обновляем:'.$object_id);
-		    $data=array('subject_id'=>$subject_id, 'subject_type'=>$subject_type, 'object_type'=>'post');
-		    $format=array('%d','%s', '%s');
-			$where=array('object_id'=>$object_id);
-			$where_format=array('%d');
-		    $result = $wpdb->update($table_name, $data, $format, $where, $where_format);
-		}
-
-	    //$wpdb->show_errors();
-		//$wpdb->print_error();
-		return $result;
-	}
-
-    function update_acl_cp($post_id){
-
-        $users_ids = apply_filters( 'acl_users_list', array(), $post_id );
-
-        $users_ids = array_unique($users_ids);
-
-        foreach ($users_ids as $user_id) {
-            $this->add_acl_cp ('user', 'post', $user_id, $post_id);
-        }
-    }
-	
-	function get_acl_cp($subject_type, $object_type, $object_id) {
-	    global $wpdb;
-		$table_name = $wpdb->prefix . "acl";
-		$sql = $wpdb->prepare("SELECT subject_id FROM $table_name  WHERE object_type=%s AND subject_type=%s AND object_id=%d",$object_type, $subject_type, $object_id);
-		$subjects_ids = $wpdb->get_results($sql);
-		
-		return $subjects_ids;
-	}
-	
-	function del_acl_cp($subject_type, $object_type, $subject_id, $object_id) {
-	    global $wpdb;
-		$table_name = $wpdb->prefix . "acl";
-		$result=0;
-		// проверим, если такая запись есть то удалим
-		$check_acl_table=$this->check_acl_cp($subject_type, $object_type, $subject_id, $object_id);
-		//error_log($check_acl_table);
-		if ($check_acl_table) {
-		    //error_log('есть такая запись, удаляем');
-		    $sql = $wpdb->prepare("DELETE FROM $table_name WHERE object_id =%d AND subject_type=%s AND object_type=%s AND subject_id=%d", $object_id, $subject_type, $object_type, $subject_id);
-	        $result = $wpdb->query($sql);
-            //$wpdb->show_errors();
-		    //$wpdb->print_error();
-            
-        }
-		return $result;	
-		
-	}
-	
-	function check_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
-	    // проверяем есть ли уже в таблице такая запись 
-		global $wpdb;
-		$table_name = $wpdb->prefix . "acl";
-		$subjects_ids = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM $table_name  WHERE object_type=%s AND subject_type=%s AND object_id=%d AND subject_id=%s",$object_type, $subject_type, $object_id, $subject_id));
-		//$subjects_ids = $wpdb->get_results($sql);
-		
-		return $subjects_ids;
-	}
-	
-	
 	function add_acl_meta_box() {
 
 		//$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
@@ -170,7 +67,7 @@ class acl_ui_posts {
 		//	print_r($post->ID);
 			//$acl_groups_read = get_post_meta($post->ID, 'acl_groups_read');
 			// read groups from table
-			$acl_groups_read_table = $this->get_acl_cp('group', 'post', $post->ID);
+			$acl_groups_read_table = get_acl_cp('group', 'post', $post->ID);
 			if ($acl_groups_read_table) {
 			    $acl_group_read_table_array=array();
 			    foreach($acl_groups_read_table as $acl_group_read_table) {
@@ -185,7 +82,7 @@ class acl_ui_posts {
 			
 			//$acl_users_read = get_post_meta($post->ID, 'acl_users_read');
 			// read users from table
-			$acl_users_read_table = $this->get_acl_cp('user', 'post', $post->ID);
+			$acl_users_read_table = get_acl_cp('user', 'post', $post->ID);
 			if ($acl_users_read_table){
 			    $acl_users_read_table_array=array();
 			    foreach ($acl_users_read_table as $acl_user_read_table) {
@@ -299,26 +196,8 @@ class acl_ui_posts {
 		<?php
 	}
 	
-	function del_acl_cps($acl_group_id){
-		//ПРИ ОГРОМНОМ КОЛ-ВЕ ПОСТОВ МОЖЕТ ВЫЗВАТЬ ЗАМЕДЛЕНИЕ РАБОТЫ! РЕШЕНИЕ ПЕРЕДЕЛАТЬ ЧЕРЕЗ SQL
-		if (get_post_type( $acl_group_id ) != 'user_group') return;
-		$all_posts = get_posts("numberposts=-1&fields=ids&post_type=any");
-		foreach($all_posts as $single_post){
-			delete_post_meta($single_post, 'acl_groups_read', $acl_group_id);
-			$this->del_acl_cp('group', 'post', $acl_group_id, $single_post);
-		}
-	}
-    
-    function auto_add_access(){
-        //Если пользователю дан доступ полный, то автоматом дать доступ Чтение и Правка.
-        //Если правка, то дать чтение.
-        //На чтение должен быть доступ у всех
-        //Это же правило относится к группам.
-    }
 
-    function auto_add_access_for_author(){
-        
-    }
+   
 
     function get_acl_users_for_post_callback() {
         $ids = array();
@@ -363,7 +242,7 @@ class acl_ui_posts {
         if (isset($_REQUEST['post_id']))
             //$ids = get_post_meta( $_REQUEST['post_id'], 'acl_groups_read');
 			//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			$ids_from_table = $this->get_acl_cp('group', 'post', $_REQUEST['post_id']);
+			$ids_from_table = get_acl_cp('group', 'post', $_REQUEST['post_id']);
 			$ids_from_table_array=array();
 			if ($ids_from_table){
 			    foreach($ids_from_table as $id_from_table){
@@ -399,8 +278,8 @@ class acl_ui_posts {
         if (wp_is_post_revision($post_id)) 
             return; 
 		// нужный ли тип поста?	
-		//$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
-		$screens = get_option( 'cp_acl_posts_types' );
+		$screens = array( 'report', 'cases', 'post', 'document', 'forum' );
+		//$screens = get_option( 'cp_acl_posts_types' );
 		if ( !in_array($_REQUEST['post_type'], $screens) )
 			return;
 
