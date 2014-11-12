@@ -44,7 +44,7 @@ class acl_ui_posts {
 	
 	// функции для работы с таблицей acl
 	
-	function update_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
+	function add_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
 	    global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
 		// проверим есть ли такая запись если есть - обновим, если нет, то добавим
@@ -77,7 +77,7 @@ class acl_ui_posts {
         $users_ids = array_unique($users_ids);
 
         foreach ($users_ids as $user_id) {
-            $this->update_acl_cp ('user', 'post', $user_id, $post_id);
+            $this->add_acl_cp ('user', 'post', $user_id, $post_id);
         }
     }
 	
