@@ -7,15 +7,17 @@ ACL for WordPress by CasePress Studio
 acl_users_list - позволяет добавлять новые ИД пользователей при каждом обновлении (вызове функции update_acl_cp)
 
 ## Функции
-- update_acl_cp($post_id) - обновляет таблицу доступа для указанного поста, точнее вызывает хук acl_users_list, на который вешаются функции обновления
-- **ACL_get_post_for_where($subject_id, $subject_type)** - функция для выборки постов из таблицы по ИД пользователя, либо по ИД группы возвращает массив ИД постов. Используется в функции acl_filter_where для фильтрации постов на основе доступов.
-- **update_ACL_meta($subject_type, $object_type, $subject_id, $object_id)** - функция обновляет таблицу
-- **get_ACL_meta($subject_type, $object_type, $object_id)** - функция возвращает массив ИД постов
-- **delete_ACL_meta($subject_type, $object_type, $subject_id, $object_id)** - функция удаляет запись из таблицы
-- **check_ACL_meta($subject_type, $object_type, $subject_id, $object_id)** - функция проверяет наличие записи в таблице
+- **update_acl_cp($post_id) - обновляет таблицу доступа для указанного поста, точнее вызывает хук acl_users_list, на который вешаются функции обновления
+- **get_post_for_where_acl_cp($subject_id, $subject_type)** - функция для выборки постов из таблицы по ИД пользователя, либо по ИД группы возвращает массив ИД постов. Используется в функции acl_filter_where для фильтрации постов на основе доступов.
+- **update_acl_cp($subject_type, $object_type, $subject_id, $object_id)** - функция обновляет таблицу
+- **get_acl_cp($subject_type, $object_type, $object_id)** - функция возвращает массив ИД постов
+- **del_acl_cp($subject_type, $object_type, $subject_id, $object_id)** - функция удаляет запись из таблицы
+- **check_acl_cp($subject_type, $object_type, $subject_id, $object_id)** - функция проверяет наличие записи в таблице
 
 
 # Changelog 
+## 12.11.2014
+* Изменение имен функций
 ## 14.07.2014
 * При удалении пользователя пользователь удаляется из всех групп в которых состоит
 * При удалении пользователя удаляются все меты у постов где он участвует
