@@ -95,28 +95,8 @@ class ACL {
 		}
 		$my_ids=array_unique($ids_usr+$ids_group);
 		
-		
-		/*if(!empty($acl_groups_id))
-			$args['meta_query'][] = array(  
-					'numberposts' => '-1',
-					'key' => 'acl_groups_read',
-					'value' => $acl_groups_id
-				);
-
-		$ids = get_transient('acl_ids');
-
-		if (false === $ids) {
-			$ids = get_posts($args);
-			set_transient('acl_ids', $ids, 5);
-		}*/
-
-		//Получаем ИД постов с доступом и переводим их в запятые.
-		//$ids = get_posts($args);
-		//print_r('Meta:'.$ids);
-		//print_r('Table:'.$my_ids);
-		//$ids = implode(",", $ids);
 		$ids = implode(",", $my_ids);
-		//error_log($ids);
+
         global $wpdb;
 		$where .= " AND (if(".$wpdb->posts.".post_type in (" . $pt . "),if(".$wpdb->posts.".ID IN (" . $ids . "),1,0),1)=1)";
         
@@ -257,9 +237,13 @@ function del_acl_cps($acl_group_id){
 add_action( 'delete_post','del_acl_cps', 10, 1 );
 	
 	
-/* функция для выборки постов из таблицы
+/*
+
+функция для выборки постов из таблицы
  по ИД пользователя, либо по ИД группы
- возвращает массив ИД постов*/
+ возвращает массив ИД постов
+
+*/
 	function get_post_for_where_acl_cp($subject_id, $subject_type){
         global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
@@ -278,8 +262,8 @@ add_action( 'delete_post','del_acl_cps', 10, 1 );
 }
 
 // действия при активации\деактивации\удалении плагина
-	register_activation_hook(   __FILE__, 'ACL_Setup_on_activation' );
-	function ACL_Setup_on_activation(){
+register_activation_hook(   __FILE__, 'ACL_Setup_on_activation' );
+function ACL_Setup_on_activation(){
 		if ( ! current_user_can( 'activate_plugins' ) )
 			return;
 		$plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
@@ -287,10 +271,10 @@ add_action( 'delete_post','del_acl_cps', 10, 1 );
 		acl_create_table();
 		// Расcкомментируйте эту строку, чтобы увидеть функцию в действии
 		// exit( var_dump( $_GET ) );
-	}
+}
 
-	register_deactivation_hook( __FILE__, 'ACL_Setup_on_deactivation' );
-	function ACL_Setup_on_deactivation(){
+register_deactivation_hook( __FILE__, 'ACL_Setup_on_deactivation' );
+function ACL_Setup_on_deactivation(){
 		if ( ! current_user_can( 'activate_plugins' ) )
 			return;
 		$plugin = isset( $_REQUEST['plugin'] ) ? $_REQUEST['plugin'] : '';
@@ -300,8 +284,8 @@ add_action( 'delete_post','del_acl_cps', 10, 1 );
 		//exit( var_dump( $_GET ) );
 }
 
-	register_uninstall_hook(    __FILE__, 'ACL_Setup_on_uninstall' );
-	function ACL_Setup_on_uninstall(){
+register_uninstall_hook(    __FILE__, 'ACL_Setup_on_uninstall' );
+function ACL_Setup_on_uninstall(){
 		if ( ! current_user_can( 'activate_plugins' ) )
 			return;
 		check_admin_referer( 'bulk-plugins' );
@@ -313,12 +297,12 @@ add_action( 'delete_post','del_acl_cps', 10, 1 );
 		//error_log('// Расcкомментируйте эту строку, чтобы увидеть функцию в действии');
 		// Раскомментируйте эту строку, чтобы увидеть функцию в действии
 		//exit( var_dump( $_GET ) );
-	}	
+}	
 
-	function acl_create_table () {
+function acl_create_table () {
     global $wpdb;
     $table_name = $wpdb->prefix . "acl";
-	error_log($table_name);
+    error_log($table_name);
     if($wpdb->get_var("SHOW TABLES LIKE '$table_name'") != $table_name) {
         $sql = "CREATE TABLE " . $table_name . " (
 	        id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -327,21 +311,17 @@ add_action( 'delete_post','del_acl_cps', 10, 1 );
 			subject_id mediumint(9) NOT NULL,
 			object_id mediumint(9) NOT NULL,
 	        UNIQUE KEY id (id)
-	    );";
+        );";
 
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql);
     }
 }
 
-	//TODO
-    function auto_add_access(){
-        //Если пользователю дан доступ полный, то автоматом дать доступ Чтение и Правка.
-        //Если правка, то дать чтение.
-        //На чтение должен быть доступ у всех
-        //Это же правило относится к группам.
-    }
-
-	
-
-?>
+//TODO
+function auto_add_access(){
+    //Если пользователю дан доступ полный, то автоматом дать доступ Чтение и Правка.
+    //Если правка, то дать чтение.
+    //На чтение должен быть доступ у всех
+    //Это же правило относится к группам.
+}
