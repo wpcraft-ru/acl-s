@@ -3,7 +3,7 @@
 Plugin Name: ACL
 Plugin URI: http://www.casepress.org/
 Description: Access control list for WP
-Version: 20141111.2
+Version: 20141113
 Author: CasePress Studio
 Author URI: http://casepress.org
 GitHub Plugin URI: https://github.com/casepress-studio/acl-by-cps/
@@ -148,7 +148,7 @@ $theACL = new ACL();
 
 	// функции для работы с таблицей ACL
 	
-    function add_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
+function add_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
 	    global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
 		// проверим есть ли такая запись если есть - обновим, если нет, то добавим
@@ -172,18 +172,18 @@ $theACL = new ACL();
 	    //$wpdb->show_errors();
 		//$wpdb->print_error();
 		return $result;
-	}
+}
 
-	function get_acl_cp($subject_type, $object_type, $object_id) {
+function get_acl_cp($subject_type, $object_type, $object_id) {
 	    global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
 		$sql = $wpdb->prepare("SELECT subject_id FROM $table_name  WHERE object_type=%s AND subject_type=%s AND object_id=%d",$object_type, $subject_type, $object_id);
 		$subjects_ids = $wpdb->get_results($sql);
 		
 		return $subjects_ids;
-	}
+}
 	
-	function check_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
+function check_acl_cp ($subject_type, $object_type, $subject_id, $object_id) {
 	    // проверяем есть ли уже в таблице такая запись 
 		global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
@@ -191,9 +191,9 @@ $theACL = new ACL();
 		//$subjects_ids = $wpdb->get_results($sql);
 		
 		return $subjects_ids;
-	}
+}
 	
-    function update_acl_cp($post_id){
+function update_acl_cp($post_id){
 
         $users_ids = apply_filters( 'acl_users_list', array(), $post_id );
 
@@ -202,10 +202,10 @@ $theACL = new ACL();
         foreach ($users_ids as $user_id) {
             add_acl_cp ('user', 'post', $user_id, $post_id);
         }
-    }
-	
-	add_action( 'delete_post', 'del_acl_cps', 10, 1 );
-	function del_acl_cp($subject_type, $object_type, $subject_id, $object_id) {
+}
+
+//Удаляем записи из списка доступа, если удалили пост
+function del_acl_cp($subject_type, $object_type, $subject_id, $object_id) {
 	    global $wpdb;
 		$table_name = $wpdb->prefix . "acl";
 		$result=0;
@@ -222,28 +222,30 @@ $theACL = new ACL();
         }
 		return $result;	
 		
-	}
+}
+add_action( 'delete_post', 'del_acl_cps', 10, 1 );
 
 	
     
-	add_filter( 'acl_users_list', 'acl_users_list_save_post', 10, 2 );
-	function acl_users_list_save_post($users_ids, $post_id){
+function acl_users_list_save_post($users_ids, $post_id){
         $saved_users_ids = get_post_meta($post_id, 'acl_users');
         $post_users = array_merge($users_ids, $saved_users_ids); 
         return array_unique($post_users);
-    }
+}
+add_filter( 'acl_users_list', 'acl_users_list_save_post', 10, 2 );
 
-	add_action( 'added_post_meta', 'meta_change_acl_update', 10, 3 );
-    add_action( 'updated_post_meta', 'meta_change_acl_update', 10, 3 );
-    add_action( 'deleted_post_meta', 'meta_change_acl_update', 10, 3 );
-    function meta_change_acl_update($meta_id, $post_id, $meta_key){
+//обновляем ACL если обновили список доступа в метах поста
+function meta_change_acl_update($meta_id, $post_id, $meta_key){
 		if(in_array($meta_key, array('acl_users'))){
 			update_acl_cp($post_id);
 		}
-    }
+}
+add_action( 'added_post_meta', 'meta_change_acl_update', 10, 3 );
+add_action( 'updated_post_meta', 'meta_change_acl_update', 10, 3 );
+add_action( 'deleted_post_meta', 'meta_change_acl_update', 10, 3 );
 
-	add_action( 'delete_post','del_acl_cps', 10, 1 );
-	function del_acl_cps($acl_group_id){
+//удаляем мету группы у пользователя, если удалили группу
+function del_acl_cps($acl_group_id){
 		//ПРИ ОГРОМНОМ КОЛ-ВЕ ПОСТОВ МОЖЕТ ВЫЗВАТЬ ЗАМЕДЛЕНИЕ РАБОТЫ! РЕШЕНИЕ ПЕРЕДЕЛАТЬ ЧЕРЕЗ SQL
 		if (get_post_type( $acl_group_id ) != 'user_group') return;
 		$all_posts = get_posts("numberposts=-1&fields=ids&post_type=any");
@@ -251,7 +253,8 @@ $theACL = new ACL();
 			delete_post_meta($single_post, 'acl_groups_read', $acl_group_id);
 			del_acl_cp('group', 'post', $acl_group_id, $single_post);
 		}
-	}
+}
+add_action( 'delete_post','del_acl_cps', 10, 1 );
 	
 	
 /* функция для выборки постов из таблицы
