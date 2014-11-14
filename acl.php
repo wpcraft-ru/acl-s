@@ -15,7 +15,7 @@ License: GPL
 Подключаем компоненты
 */
 //Группы
-require_once('includes/groups.php');
+include_once('includes/groups.php');
 //Замещения
 require_once('includes/deputies.php');
 //Пользовательский интерфейс для указания пользователей и групп у постов
