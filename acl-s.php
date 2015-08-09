@@ -6,7 +6,7 @@ Author: Systemo
 Author URI: http://systemo.biz
 GitHub Plugin URI: https://github.com/systemo-biz/acl-s
 GitHub Branch: master
-Version: 20150808-2
+Version: 20150808-3
 */
 
 
