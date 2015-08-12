@@ -9,6 +9,7 @@ private function __construct() {
   add_action('admin_enqueue_scripts', array($this, 'load_jquery_plugins'));
   add_action('post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
   add_action('save_post', array($this,'save_acl_fields'));
+  add_action('wp_ajax_add_acl_users', array($this, 'add_acl_users_callback'));
   add_action('wp_ajax_delete_acl_user', array($this,'delete_acl_user_callback'));
   add_action('wp_ajax_get_users', array($this, 'get_users_for_autocomplete'));
 }
@@ -32,7 +33,12 @@ function add_field_to_submitbox(){
      ?>
      <style>
      .ui-autocomplete{z-index:1000000;}
-     #add_users{text-decoration:none;}
+     .add_users{
+      text-decoration:none;
+      color:#000 !important;
+    }
+     .access-options{display:none;}
+     .acl-s-true:checked + label + .access-options{display:block;}
      </style>
      <script>
      jQuery(document).ready(function($){
@@ -79,41 +85,58 @@ function add_field_to_submitbox(){
       });
 
       //Обработка удаления пользователя из списка
-      $('.delete_acl_user').click(function(){
-      var userID= $(this).parent().siblings('.user_id').text();
-      var tr= $(this).closest('tr');
-      $.ajax({
-      data: ({
-          action: 'delete_acl_user',
-          post_id: <?php echo $post->ID ?>,
-          user_id: userID,
+      $('#users_table tbody').on('click','.delete_acl_user', function(){
+        var tr= $(this).closest('tr');
+        var userID= tr.find('.user_id').text();
+        $.ajax({
+        data: ({
+            action: 'delete_acl_user',
+            post_id: <?php echo $post->ID ?>,
+            user_id: userID,
+            }),
+        url: "<?php echo admin_url('admin-ajax.php') ?>",
+        success: function(){
+          var row = table.row(tr);
+          row.remove().draw();
+        },
+    });
+  });
+      //Обработка добавления пользователей в список
+      $('.add_users').click(function(){
+        $.ajax({
+          data:({
+            action: 'add_acl_users',
+            post_id: <?php echo $post->ID ?>,
+            user_string: $('#acl_users_s').val()
           }),
-      url: "<?php echo admin_url('admin-ajax.php') ?>",
-      success: function(){
-          tr.remove();
-      }
-  });
-  });
+          url: "<?php echo admin_url('admin-ajax.php') ?>",
+          success: function(data){
+              table.rows.add(JSON.parse(data)).draw();
+            }
+          
+              })
+      })
+      var table = $('#users_table').DataTable();
       $('#users_table').DataTable();
-
   });
         </script>
         <div class='misc-pub-section'>
+            <input type="checkbox" name="acl_s_true" class="acl-s-true" autocomplete="off" <?php echo get_post_meta($post->ID,'acl_s_true',true)?>>
+            <label for="acl_s_true">Доступ по списку</label>
+            <div class="access-options">
+            <br>
             <span id="acl">Доступ: </span>
             <a href='#TB_inline?width=750&height=350&inlineId=acl_form' class="thickbox" id="options" title="Настройка доступа">Настройка</a>
+            </div>
         </div>
         <div id='acl_form' style='display:none;'>
-        <br/>
-        <input type="checkbox" name="acl_s_true" <?php echo get_post_meta($post->ID,'acl_s_true',true)?>>
-        <label for="acl_s_true">Ограничить доступ по списку</label>
-        <br/><br/>
         <label for="acl_users_s">Пользователи:</label>
         <br/>
         <input id="acl_users_s" name="acl_users_s">
+        <a href="#" class="add_users"><span class="dashicons dashicons-plus-alt"></span></a>
         <br/><br/>
         <?php
-        $acl_users_s=get_post_meta($post->ID,'acl_users_s');
-        if(!empty($acl_users_s)){?>
+        $acl_users_s=get_post_meta($post->ID,'acl_users_s');?>
         <table id="users_table">
         <thead>
             <tr>
@@ -129,12 +152,11 @@ function add_field_to_submitbox(){
                     $user_data=get_user_by('id',$acl_user);
                     ?>
                     <tr>
-                        <td class="user_id"><?php echo $acl_user; ?></td>
+                        <td><span class="user_id"><?php echo $acl_user; ?></span></td>
                         <td><?php echo $user_data->user_nicename; ?></td>
                         <td><a href="#" class="delete_acl_user">удалить</a></td>
                     </tr><?php
-                }
-            }?>
+                }?>
         </tbody>
         </table>
         </div>
@@ -145,7 +167,7 @@ function save_acl_fields($post_id){
     if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) return;
     if (wp_is_post_revision($post_id)) return;
 
-    if($_REQUEST['acl_s_true']){
+    if(isset($_REQUEST['acl_s_true'])){
         update_post_meta($post_id, 'acl_s_true', 'checked');
     }
     else{
@@ -155,16 +177,23 @@ function save_acl_fields($post_id){
             delete_post_meta($post_id,'acl_s_true');
         }
     }
+}
 
-    $acl_users = explode(',', trim($_REQUEST['acl_users_s']));
+function add_acl_users_callback(){
+    $acl_users = explode(',', trim($_REQUEST['user_string']));
     $acl_users = array_unique($acl_users, SORT_STRING);
-    $old_acl_users = get_post_meta($post_id, 'acl_users_s');
+    $old_acl_users = get_post_meta($_REQUEST['post_id'], 'acl_users_s');
+    
     foreach ( $acl_users as $user_nicename ) {
       $user_data=get_user_by('slug', $user_nicename);
-      if (!(in_array($user_data->ID, $old_acl_users)) && !empty($user_nicename)){
-        add_post_meta($post_id, 'acl_users_s', $user_data->ID);
-        }
-    }
+      $user_id=!empty($user_data)?$user_data->ID:'';
+      if (!(in_array($user_id, $old_acl_users)) && !empty($user_nicename)){
+        add_post_meta($_REQUEST['post_id'], 'acl_users_s', $user_id);
+        $data_for_table[]=["$user_id","$user_nicename","<a href='#' class='delete_acl_user'>удалить</a>"];
+      };
+    };
+    echo json_encode($data_for_table);
+    exit;
 }
 
 function delete_acl_user_callback(){
@@ -183,20 +212,20 @@ function get_users_for_autocomplete(){
   foreach ( $users as $user ) {
     $user_data[]=$user->user_nicename;
   }
-  echo json_encode($user_data);;
+  echo json_encode($user_data);
 }
   exit;
 }
 
 
 protected function __clone() {
-	// ограничивает клонирование объекта
+  // ограничивает клонирование объекта
 }
 static public function getInstance() {
-	if(is_null(self::$_instance))
-	{
-	self::$_instance = new self();
-	}
-	return self::$_instance;
+  if(is_null(self::$_instance))
+  {
+  self::$_instance = new self();
+  }
+  return self::$_instance;
 }
 } $ACL_UI = ACL_UI_Singleton::getInstance();
