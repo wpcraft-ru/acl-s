@@ -12,3 +12,4 @@ Version: 20150808-3
 
 require_once 'inc/acl.php';
 require_once 'inc/ui.php';
+require_once 'inc/add_option.php';

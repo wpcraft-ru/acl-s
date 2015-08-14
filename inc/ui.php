@@ -33,10 +33,6 @@ function add_field_to_submitbox(){
      ?>
      <style>
      .ui-autocomplete{z-index:1000000;}
-     .add_users{
-      text-decoration:none;
-      color:#000 !important;
-    }
      .access-options{display:none;}
      .acl-s-true:checked + label + .access-options{display:block;}
      </style>
@@ -103,6 +99,14 @@ function add_field_to_submitbox(){
   });
       //Обработка добавления пользователей в список
       $('.add_users').click(function(){
+        add_users();
+      });
+      $('#acl_users_s').keypress(function(e){
+          if(e.keyCode==13){
+            add_users();
+           }
+         });
+      function add_users(){
         $.ajax({
           data:({
             action: 'add_acl_users',
@@ -115,7 +119,7 @@ function add_field_to_submitbox(){
             }
           
               })
-      })
+      }
       var table = $('#users_table').DataTable();
       $('#users_table').DataTable();
   });
@@ -133,7 +137,7 @@ function add_field_to_submitbox(){
         <label for="acl_users_s">Пользователи:</label>
         <br/>
         <input id="acl_users_s" name="acl_users_s">
-        <a href="#" class="add_users"><span class="dashicons dashicons-plus-alt"></span></a>
+        <input type="button" class=" button add_users" value="Добавить">
         <br/><br/>
         <?php
         $acl_users_s=get_post_meta($post->ID,'acl_users_s');?>

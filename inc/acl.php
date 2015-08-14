@@ -14,11 +14,18 @@ function acl_filter_where($where){
 
     $current_user_id = get_current_user_id();
 
+    //Берем из настроек нужные типы постов
+    $post_types=explode(',', trim(get_option('acl_post_type_field')));
+    foreach($post_types as &$post_type){
+        $post_type="'".$post_type."'";
+    }
+    $string_for_query=implode(',',$post_types);
+
     //Если это администратор, редактор или кто то с правом доступа, то отменяем контроль
     if (user_can($current_user_id, 'full_access_to_posts') or user_can($current_user_id, 'editor') or user_can($current_user_id, 'administrator')) return $where;
 
     $where .= " AND
-        if(" . $wpdb->posts . ".post_type = 'post',
+        if(" . $wpdb->posts . ".post_type IN (".$string_for_query."),
             if(" . $wpdb->posts . ".ID IN (
                     SELECT post_id
                     FROM " . $wpdb->postmeta ."
