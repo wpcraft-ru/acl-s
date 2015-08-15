@@ -12,8 +12,8 @@ private function __construct() {
   add_action('wp_ajax_add_acl_users', array($this, 'add_acl_users_callback'));
   add_action('wp_ajax_delete_acl_user', array($this,'delete_acl_user_callback'));
   add_action('wp_ajax_get_users', array($this, 'get_users_for_autocomplete'));
+  
 }
-
 
 
 
@@ -122,6 +122,7 @@ function add_field_to_submitbox(){
       }
       var table = $('#users_table').DataTable();
       $('#users_table').DataTable();
+      $('#users_table2').DataTable();
   });
         </script>
         <div class='misc-pub-section'>
@@ -130,7 +131,7 @@ function add_field_to_submitbox(){
             <div class="access-options">
             <br>
             <span id="acl">Доступ: </span>
-            <a href='#TB_inline?width=750&height=350&inlineId=acl_form' class="thickbox" id="options" title="Настройка доступа">Настройка</a>
+            <a href='#TB_inline?width=750&height=700&inlineId=acl_form' class="thickbox" id="options" title="Настройка доступа">Настройка</a>
             </div>
         </div>
         <div id='acl_form' style='display:none;'>
@@ -139,8 +140,6 @@ function add_field_to_submitbox(){
         <input id="acl_users_s" name="acl_users_s">
         <input type="button" class=" button add_users" value="Добавить">
         <br/><br/>
-        <?php
-        $acl_users_s=get_post_meta($post->ID,'acl_users_s');?>
         <table id="users_table">
         <thead>
             <tr>
@@ -152,6 +151,7 @@ function add_field_to_submitbox(){
 
         <tbody>
             <?php
+                $acl_users_s=get_post_meta($post->ID,'list_users_for_acl_additional');
                 foreach ($acl_users_s as $acl_user) {
                     $user_data=get_user_by('id',$acl_user);
                     ?>
@@ -159,6 +159,29 @@ function add_field_to_submitbox(){
                         <td><span class="user_id"><?php echo $acl_user; ?></span></td>
                         <td><?php echo $user_data->user_nicename; ?></td>
                         <td><a href="#" class="delete_acl_user">удалить</a></td>
+                    </tr><?php
+                }?>
+        </tbody>
+        </table>
+        <br>
+        <h3>Список доступа(acl_users_s)</h3>
+        <table id="users_table2">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Имя пользователя</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <?php
+                $acl_users_s=get_post_meta($post->ID,'acl_users_s');
+                foreach ($acl_users_s as $acl_user) {
+                    $user_data=get_user_by('id',$acl_user);
+                    ?>
+                    <tr>
+                        <td><?php echo $acl_user; ?></td>
+                        <td><?php echo $user_data->user_nicename; ?></td>
                     </tr><?php
                 }?>
         </tbody>
@@ -186,13 +209,13 @@ function save_acl_fields($post_id){
 function add_acl_users_callback(){
     $acl_users = explode(',', trim($_REQUEST['user_string']));
     $acl_users = array_unique($acl_users, SORT_STRING);
-    $old_acl_users = get_post_meta($_REQUEST['post_id'], 'acl_users_s');
+    $old_acl_users = get_post_meta($_REQUEST['post_id'], 'list_users_for_acl_additional');
     
     foreach ( $acl_users as $user_nicename ) {
       $user_data=get_user_by('slug', $user_nicename);
       $user_id=!empty($user_data)?$user_data->ID:'';
       if (!(in_array($user_id, $old_acl_users)) && !empty($user_nicename)){
-        add_post_meta($_REQUEST['post_id'], 'acl_users_s', $user_id);
+        add_post_meta($_REQUEST['post_id'], 'list_users_for_acl_additional', $user_id);
         $data_for_table[]=["$user_id","$user_nicename","<a href='#' class='delete_acl_user'>удалить</a>"];
       };
     };
@@ -201,7 +224,7 @@ function add_acl_users_callback(){
 }
 
 function delete_acl_user_callback(){
-    delete_post_meta($_REQUEST['post_id'],'acl_users_s',$_REQUEST['user_id']);
+    delete_post_meta($_REQUEST['post_id'],'list_users_for_acl_additional',$_REQUEST['user_id']);
     exit;
 }
 
@@ -220,7 +243,6 @@ function get_users_for_autocomplete(){
 }
   exit;
 }
-
 
 protected function __clone() {
   // ограничивает клонирование объекта
