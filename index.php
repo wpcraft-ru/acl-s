@@ -14,3 +14,4 @@ require_once 'inc/acl.php';
 require_once 'inc/ui.php';
 require_once 'inc/add_option.php';
 require_once 'inc/acl_ui_control.php';
+require_once 'inc/functions.php';

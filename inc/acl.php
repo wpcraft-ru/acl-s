@@ -10,7 +10,7 @@ function acl_filter_where($where){
     $current_user_id = get_current_user_id();
 
     //Берем из настроек нужные типы постов
-    $post_types=explode(',', trim(get_option('acl_post_type_field')));
+    $post_types=get_post_types_for_acl_s();
     foreach($post_types as &$post_type){
         $post_type="'".$post_type."'";
     }
@@ -42,8 +42,6 @@ function acl_filter_where($where){
         return $where;
 }
 add_filter('posts_where', 'acl_filter_where', 10, 1);
-
-
 
 
 

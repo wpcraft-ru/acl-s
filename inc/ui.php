@@ -19,7 +19,7 @@ function __construct() {
 
 function load_jquery_plugins(){
 
-    $post_types = explode(',', trim(get_option('acl_post_type_field')));
+    $post_types = get_post_types_for_acl_s();
     $post = get_post();
 
     if(empty($post)) return;
@@ -35,7 +35,7 @@ function load_jquery_plugins(){
 
 
 function add_field_to_submitbox(){
-  $post_types = explode(',', trim(get_option('acl_post_type_field')));
+  $post_types = get_post_types_for_acl_s();
   $post = get_post();
 
   if(empty($post)) return;

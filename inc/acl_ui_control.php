@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Обновляет данные таблицы доступа на основе ручного списка доступа
+ * Обновляет данные ACL на основе ручного списка доступа
  */
 
 class ACL_UI_Control {
@@ -17,7 +17,7 @@ class ACL_UI_Control {
 
   //Получаем данные из ручного списка и подставляем в фильтр основного списка
   function update_acl_s_cb($ids, $post_id){
-    
+
     $ids_from_manual_list = get_post_meta( $post_id, $key = 'list_users_for_acl_additional', $single = false );
 
     if(is_array($ids_from_manual_list)) $ids = array_merge($ids, $ids_from_manual_list);
