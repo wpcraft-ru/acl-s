@@ -6,6 +6,7 @@ class ACL_UI {
 function __construct() {
 
   add_action('admin_enqueue_scripts', array($this, 'load_jquery_plugins'));
+  add_action('admin_head', array($this, 'style_for_ui'));
   add_action('post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
   add_action('save_post', array($this,'save_acl_fields'));
   add_action('wp_ajax_add_acl_users', array($this, 'add_acl_users_callback'));
@@ -33,6 +34,22 @@ function load_jquery_plugins(){
     wp_enqueue_script('jquery-ui-autocomplete');
 }
 
+function style_for_ui(){
+  $post_types = get_post_types_for_acl_s();
+  $post = get_post();
+
+  if(empty($post)) return;
+  if(!in_array($post->post_type, $post_types)) return;
+
+  ?>
+  <style>
+     .ui-autocomplete{z-index:1000000;}
+     .access-options{display:none;}
+     #acl_s_true:checked + label + .access-options{display:block;}
+  </style>
+  <?php
+}
+
 
 function add_field_to_submitbox(){
   $post_types = get_post_types_for_acl_s();
@@ -42,11 +59,6 @@ function add_field_to_submitbox(){
   if(!in_array($post->post_type, $post_types)) return;
 
      ?>
-     <style>
-     .ui-autocomplete{z-index:1000000;}
-     .access-options{display:none;}
-     #acl_s_true:checked + label + .access-options{display:block;}
-     </style>
      <script>
      jQuery(document).ready(function($){
       //autocomplete
