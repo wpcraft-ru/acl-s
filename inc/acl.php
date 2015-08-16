@@ -1,12 +1,7 @@
 <?php
 
 //Access control list
-class ACL_Singleton {
-private static $_instance = null;
 
-private function __construct() {
-  add_filter('posts_where', array($this, 'acl_filter_where'), 10, 1);
-}
 
 //Access control posts on the list
 function acl_filter_where($where){
@@ -46,15 +41,48 @@ function acl_filter_where($where){
 
         return $where;
 }
+add_filter('posts_where', 'acl_filter_where', 10, 1);
 
-protected function __clone() {
-	// ограничивает клонирование объекта
-}
-static public function getInstance() {
-	if(is_null(self::$_instance))
-	{
-	self::$_instance = new self();
-	}
-	return self::$_instance;
-}
-} $TheACL_bs = ACL_Singleton::getInstance();
+
+
+
+
+
+//update ACL
+function update_acl_s($post_id){
+
+  //Если доступ по списку отключили, то отмена исполнения
+  $acl_s_true = get_post_meta($post_id, 'acl_s_true');
+  if(empty($acl_s_true)) return;
+
+  $ids_from_meta = get_post_custom_values('acl_users_s',$post_id);
+
+  $ids_from_meta = empty($ids_from_meta)?array():$ids_from_meta;
+
+  $ids_from_filter = apply_filters('update_acl_s', $ids_from_filter, $post_id);
+  $ids_from_filter = array_unique($ids_from_filter);
+
+  //Получаем id которых нет в мете, но есть в данных полученных через фильтр для добавления в список
+  $ids_for_add =array_diff($ids_from_filter,$ids_from_meta);
+
+  foreach ($ids_for_add  as $user_id){
+    add_post_meta($post_id,'acl_users_s',$user_id);
+  }
+
+  //Получаем id которые есть в мете, но нет в данных полученных через фильтр для удаления из списка
+  $ids_for_del = array_diff($ids_from_meta, $ids_from_filter);
+  foreach ($ids_for_del  as $user_id){
+    delete_post_meta( $post_id, 'acl_users_s', $user_id );
+  }
+
+} add_action('save_post', 'update_acl_s', 11);
+
+
+//Autoudate ACL for authot post
+function add_post_author($ids, $post_id){
+	$post = get_post($post_id);
+
+  if(!in_array($post->post_author, $ids)) $ids[] = $post->post_author;
+
+  return $ids;
+} add_filter('update_acl_s', 'add_post_author', 10, 2);

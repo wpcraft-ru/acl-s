@@ -1,10 +1,9 @@
 <?php
 
 // User interface for ACL
-class ACL_UI_Singleton {
-private static $_instance = null;
+class ACL_UI {
 
-private function __construct() {
+function __construct() {
 
   add_action('admin_enqueue_scripts', array($this, 'load_jquery_plugins'));
   add_action('post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
@@ -247,22 +246,14 @@ function get_users_for_autocomplete(){
   FROM $wpdb->users
   ");
   if( $users ) {
-  foreach ( $users as $user ) {
-    $user_data[]=$user->user_nicename;
+    foreach ( $users as $user ) {
+      $user_data[]=$user->user_nicename;
+    }
+
+    echo json_encode($user_data);
   }
-  echo json_encode($user_data);
-}
+
   exit;
 }
 
-protected function __clone() {
-  // ограничивает клонирование объекта
-}
-static public function getInstance() {
-  if(is_null(self::$_instance))
-  {
-  self::$_instance = new self();
-  }
-  return self::$_instance;
-}
-} $ACL_UI = ACL_UI_Singleton::getInstance();
+} $TheACL_UI = new ACL_UI;
