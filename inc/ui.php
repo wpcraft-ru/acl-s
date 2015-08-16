@@ -217,7 +217,7 @@ function save_acl_fields($post_id){
 }
 
 function add_acl_users_callback(){
-    $acl_users = explode(',', trim($_REQUEST['user_string']));
+    $acl_users = get_post_types_for_acl_s();
     $acl_users = array_unique($acl_users, SORT_STRING);
     $old_acl_users = get_post_meta($_REQUEST['post_id'], 'list_users_for_acl_additional');
 
