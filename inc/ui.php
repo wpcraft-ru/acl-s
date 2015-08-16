@@ -12,13 +12,20 @@ private function __construct() {
   add_action('wp_ajax_add_acl_users', array($this, 'add_acl_users_callback'));
   add_action('wp_ajax_delete_acl_user', array($this,'delete_acl_user_callback'));
   add_action('wp_ajax_get_users', array($this, 'get_users_for_autocomplete'));
-  
+
 }
 
 
 
 
 function load_jquery_plugins(){
+
+    $post_types = explode(',', trim(get_option('acl_post_type_field')));
+    $post = get_post();
+
+    if(empty($post)) return;
+    if(!in_array($post->post_type, $post_types)) return;
+
     //DataTable
     wp_enqueue_style( 'datatable', plugin_dir_url(__FILE__).'datatable/media/css/jquery.dataTables.css' );
     wp_enqueue_script( 'datatable', plugin_dir_url(__FILE__).'datatable/media/js/jquery.dataTables.js' );
@@ -29,12 +36,16 @@ function load_jquery_plugins(){
 
 
 function add_field_to_submitbox(){
-    global $post;
+  $post_types = explode(',', trim(get_option('acl_post_type_field')));
+  $post = get_post();
+
+  if(empty($post)) return;
+  if(!in_array($post->post_type, $post_types)) return;
      ?>
      <style>
      .ui-autocomplete{z-index:1000000;}
      .access-options{display:none;}
-     .acl-s-true:checked + label + .access-options{display:block;}
+     #acl_s_true:checked + label + .access-options{display:block;}
      </style>
      <script>
      jQuery(document).ready(function($){
@@ -117,7 +128,7 @@ function add_field_to_submitbox(){
           success: function(data){
               table.rows.add(JSON.parse(data)).draw();
             }
-          
+
               })
       }
       var table = $('#users_table').DataTable();
@@ -126,7 +137,7 @@ function add_field_to_submitbox(){
   });
         </script>
         <div class='misc-pub-section'>
-            <input type="checkbox" name="acl_s_true" class="acl-s-true" autocomplete="off" <?php echo get_post_meta($post->ID,'acl_s_true',true)?>>
+            <input type="checkbox" name="acl_s_true" id="acl_s_true" autocomplete="off" <?php echo get_post_meta($post->ID,'acl_s_true',true)?>>
             <label for="acl_s_true">Доступ по списку</label>
             <div class="access-options">
             <br>
@@ -210,7 +221,7 @@ function add_acl_users_callback(){
     $acl_users = explode(',', trim($_REQUEST['user_string']));
     $acl_users = array_unique($acl_users, SORT_STRING);
     $old_acl_users = get_post_meta($_REQUEST['post_id'], 'list_users_for_acl_additional');
-    
+
     foreach ( $acl_users as $user_nicename ) {
       $user_data=get_user_by('slug', $user_nicename);
       $user_id=!empty($user_data)?$user_data->ID:'';
