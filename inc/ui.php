@@ -40,6 +40,7 @@ function add_field_to_submitbox(){
 
   if(empty($post)) return;
   if(!in_array($post->post_type, $post_types)) return;
+
      ?>
      <style>
      .ui-autocomplete{z-index:1000000;}
@@ -145,57 +146,65 @@ function add_field_to_submitbox(){
             </div>
         </div>
         <div id='acl_form' style='display:none;'>
-        <label for="acl_users_s">Пользователи:</label>
-        <br/>
-        <input id="acl_users_s" name="acl_users_s">
-        <input type="button" class=" button add_users" value="Добавить">
-        <br/><br/>
-        <table id="users_table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Имя пользователя</th>
-                <th>Действие</th>
-            </tr>
-        </thead>
+          <div class="field_add_user_to_acl_s">
+            <label for="acl_users_s">Пользователи:</label>
+            <br/>
+            <input id="acl_users_s" name="acl_users_s">
+            <input type="button" class=" button add_users" value="Добавить">
+          </div>
+          <br/><br/>
+          <div class="list_manual_for_acl">
+            <strong>Список ручного указания доступа к посту</strong><br/><small>Храниться в метаполе: list_users_for_acl_additional</small>
 
-        <tbody>
-            <?php
-                $acl_users_s=get_post_meta($post->ID,'list_users_for_acl_additional');
-                foreach ($acl_users_s as $acl_user) {
-                    $user_data=get_user_by('id',$acl_user);
-                    ?>
-                    <tr>
-                        <td><span class="user_id"><?php echo $acl_user; ?></span></td>
-                        <td><?php echo $user_data->user_nicename; ?></td>
-                        <td><a href="#" class="delete_acl_user">удалить</a></td>
-                    </tr><?php
-                }?>
-        </tbody>
-        </table>
-        <br>
-        <h3>Список доступа(acl_users_s)</h3>
-        <table id="users_table2">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Имя пользователя</th>
-          </tr>
-        </thead>
+            <table id="users_table">
+              <thead>
+                  <tr>
+                      <th>ID</th>
+                      <th>Имя пользователя</th>
+                      <th>Действие</th>
+                  </tr>
+              </thead>
 
-        <tbody>
-          <?php
-                $acl_users_s=get_post_meta($post->ID,'acl_users_s');
-                foreach ($acl_users_s as $acl_user) {
-                    $user_data=get_user_by('id',$acl_user);
-                    ?>
-                    <tr>
-                        <td><?php echo $acl_user; ?></td>
-                        <td><?php echo $user_data->user_nicename; ?></td>
-                    </tr><?php
-                }?>
-        </tbody>
-        </table>
+              <tbody>
+                  <?php
+                      $acl_users_s=get_post_meta($post->ID,'list_users_for_acl_additional');
+                      foreach ($acl_users_s as $acl_user):
+                          $user_data=get_user_by('id',$acl_user);
+                          ?>
+                          <tr>
+                              <td><span class="user_id"><?php echo $acl_user; ?></span></td>
+                              <td><?php echo $user_data->user_nicename; ?></td>
+                              <td><a href="#" class="delete_acl_user">удалить</a></td>
+                          </tr>
+                      <?php endforeach; ?>
+              </tbody>
+            </table>
+          </div>
+          <br>
+          <div class="acl_users_s_wrapper">
+            <strong>Список доступа</strong><br/><small>Храниться в метаполе: acl_users_s</small>
+            <table id="users_table2">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Имя пользователя</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <?php
+                      $acl_users_s=get_post_meta($post->ID,'acl_users_s');
+                      foreach ($acl_users_s as $acl_user) {
+                          $user_data=get_user_by('id',$acl_user);
+                          ?>
+                          <tr>
+                              <td><?php echo $acl_user; ?></td>
+                              <td><?php echo $user_data->user_nicename; ?></td>
+                          </tr><?php
+                      }?>
+              </tbody>
+            </table>
+          </div>
         </div>
             <?php
 }
