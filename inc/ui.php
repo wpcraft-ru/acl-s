@@ -7,7 +7,7 @@ function __construct() {
 
   add_action('admin_enqueue_scripts', array($this, 'load_jquery_plugins'));
   add_action('admin_head', array($this, 'style_for_ui'));
-  add_action('post_submitbox_misc_actions', array($this, 'add_field_to_submitbox'));
+  add_action('post_submitbox_start', array($this, 'add_field_to_submitbox'));
   add_action('save_post', array($this,'save_acl_fields'));
   add_action('wp_ajax_add_acl_users', array($this, 'add_acl_users_callback'));
   add_action('wp_ajax_delete_acl_user', array($this,'delete_acl_user_callback'));
